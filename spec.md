@@ -10,7 +10,7 @@ This document explores what it would look like to build an embedded equivalent �
 
 The working name for this project is **endb-lite** (placeholder).
 
----
+
 
 ## Design Principles
 
@@ -26,7 +26,7 @@ The working name for this project is **endb-lite** (placeholder).
 
 6. **Row-oriented storage is enough.** Columnar storage is theoretically desirable for analytical queries over historical data, but no viable embedded columnar option exists today. Row-oriented Turso/SQLite tables with proper indexing are the storage model. Columnar is a future optimization, not a design dependency.
 
----
+
 
 ## Architecture Overview
 
@@ -91,7 +91,7 @@ The working name for this project is **endb-lite** (placeholder).
 └─────────────────────────────────────────────────────┘
 ```
 
----
+
 
 ## Storage Model
 
@@ -151,7 +151,7 @@ CREATE TABLE _transactions (
 
 This enables queries like "show me the database as it was at transaction 42" in addition to timestamp-based time travel.
 
----
+
 
 ## Schema-Last Document Model
 
@@ -219,7 +219,7 @@ FROM _stores_current;
 
 SQLite's JSON support doesn't have recursive descent natively, so the compiler would need to handle this — possibly by expanding known paths from the schema registry at query planning time.
 
----
+
 
 ## Temporal Query Compilation
 
@@ -292,7 +292,7 @@ SQL:2011 period predicates compile to range comparisons:
 
 Queries without `FOR SYSTEM_TIME` read only from `_T_current`. This is the fast path — no history scan, no UNION, just a normal indexed read against the current-state table. This matches Endatabas's design: "queries default to as-of-now, which is the thing you want 97% of the time."
 
----
+
 
 ## ERASE (Compliance Deletion)
 
@@ -310,7 +310,7 @@ INSERT INTO _erasure_log (_table, _id, _erased_at)
 VALUES ('users', 'user-123', '2026-04-04T12:00:00Z');
 ```
 
----
+
 
 ## UPDATE and DELETE Semantics
 
@@ -345,7 +345,7 @@ DELETE FROM _events_current WHERE _id = 'evt-1';
 -- The row is NOT gone — it still exists in _events_history
 ```
 
----
+
 
 ## Columnar Storage: Deferred
 
@@ -369,7 +369,7 @@ If analytical performance over large history tables becomes a real bottleneck (n
 
 2. **Materialized aggregates.** For common temporal queries (e.g., "how many events per day over the last year"), pre-compute and cache the results in regular tables, updated incrementally via CDC. This avoids full history scans entirely.
 
----
+
 
 ## Parser Implementation
 
@@ -393,7 +393,7 @@ Turso has a `parser/` crate in its repo. Forking this crate and extending it is 
 
 The parser produces an AST that the query compiler walks to emit standard Turso-compatible SQL. The compiler is a tree transformation, not a string-manipulation pass. This keeps it robust against injection and edge cases.
 
----
+
 
 ## Embedding API
 
@@ -471,7 +471,7 @@ db.execute("""
 rows = db.query("SELECT * FROM sensors FOR SYSTEM_TIME ALL")
 ```
 
----
+
 
 ## Scope and Non-Goals
 
@@ -506,7 +506,7 @@ rows = db.query("SELECT * FROM sensors FOR SYSTEM_TIME ALL")
 - Replacing SQLite for general-purpose use (this is a specialized tool)
 - Adaptive indexing (Endatabas's most ambitious planned feature — out of scope)
 
----
+
 
 ## Open Questions
 
@@ -524,7 +524,7 @@ rows = db.query("SELECT * FROM sensors FOR SYSTEM_TIME ALL")
 
 7. **Query result format.** Should queries return documents (JSON objects) or flat rows? Endatabas returns documents by default. SQLite tooling expects flat rows. Probably need both: documents for the programmatic API, flat rows for CLI/tooling compatibility.
 
----
+
 
 ## Prior Art and Influences
 
