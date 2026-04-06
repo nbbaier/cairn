@@ -4,7 +4,7 @@ Exploratory Spec — April 2026
 
 ## Premise
 
-Endatabas is an interesting project: a SQL document database with complete history, immutable storage, time-travel queries, and schema-flexible documents stored in Apache Arrow columnar format. Its core ideas are compelling, but it requires running a server — which is at odds with the use cases where its features would be most valuable: personal data stores, local-first apps, developer tools, PKM systems, edge applications.
+[Endatabas](https://www.endatabas.com/) is an interesting project: a SQL document database with complete history, immutable storage, time-travel queries, and schema-flexible documents stored in Apache Arrow columnar format. Its core ideas are compelling, but it requires running a server — which is at odds with the use cases where its features would be most valuable: personal data stores, local-first apps, developer tools, PKM systems, edge applications.
 
 This document explores what it would look like to build an embedded equivalent — something that is to Endatabas what SQLite is to Postgres. The proposed foundation is Turso (the Rust-based SQLite-compatible database), extended with temporal SQL semantics, automatic versioning via CDC, and a schema-flexible document model.
 
