@@ -1,8 +1,6 @@
 # Embedded Temporal Document Database on Turso
 
-## Exploratory Spec — April 2026
-
----
+Exploratory Spec — April 2026
 
 ## Premise
 
