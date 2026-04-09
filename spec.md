@@ -1,4 +1,4 @@
-# Embedded Temporal Document Database on Turso
+# Cairn: An Embedded Temporal Document Database on Turso
 
 Exploratory Spec — April 2026
 
