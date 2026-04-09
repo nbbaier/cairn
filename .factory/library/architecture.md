@@ -86,13 +86,13 @@ SQLite BEFORE triggers on `_T_current`:
 - **BEFORE UPDATE**: copies old row to `_T_history` with `_op='UPDATE'`, `_valid_to` from `_cairn_tx_context`
 - **BEFORE DELETE**: copies old row to `_T_history` with `_op='DELETE'`, `_valid_to` from `_cairn_tx_context`
 
-Transaction context passed via connection-scoped temp table `_cairn_tx_context`:
+Transaction context passed via a **regular system table** `_cairn_tx_context` (NOT a temp table — SQLite prohibits main-schema triggers from referencing temp tables):
 
 ```sql
-CREATE TEMP TABLE _cairn_tx_context (txn_id INTEGER, timestamp INTEGER);
+CREATE TABLE IF NOT EXISTS _cairn_tx_context (txn_id INTEGER NOT NULL, timestamp INTEGER NOT NULL);
 ```
 
-Populated by Rust layer at `begin_write()`, read by triggers, dropped at `commit()`/`rollback()`.
+Protocol: `begin_write()` clears then populates the row. `commit()` clears after commit. `rollback()` — the SQL ROLLBACK undoes the INSERT automatically. Safe because Mutex serializes all access. See `.factory/library/schema-decisions.md` for full details.
 
 ## Concurrency Model
 
