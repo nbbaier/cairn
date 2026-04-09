@@ -49,17 +49,26 @@ use crate::error::{Error, Result};
 pub(crate) fn begin_write(conn: &Connection) -> Result<(i64, i64)> {
     let ts = now_epoch_ms()?;
     conn.execute_batch("BEGIN")?;
-    conn.execute("DELETE FROM _cairn_tx_context", [])?;
-    conn.execute(
-        "INSERT INTO _transactions (timestamp) VALUES (?1)",
-        rusqlite::params![ts],
-    )?;
-    let txn_id = conn.last_insert_rowid();
-    conn.execute(
-        "INSERT INTO _cairn_tx_context (txn_id, timestamp) VALUES (?1, ?2)",
-        rusqlite::params![txn_id, ts],
-    )?;
-    Ok((txn_id, ts))
+    let result = (|| -> Result<(i64, i64)> {
+        conn.execute("DELETE FROM _cairn_tx_context", [])?;
+        conn.execute(
+            "INSERT INTO _transactions (timestamp) VALUES (?1)",
+            rusqlite::params![ts],
+        )?;
+        let txn_id = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO _cairn_tx_context (txn_id, timestamp) VALUES (?1, ?2)",
+            rusqlite::params![txn_id, ts],
+        )?;
+        Ok((txn_id, ts))
+    })();
+    match result {
+        Ok(r) => Ok(r),
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(e)
+        }
+    }
 }
 
 /// Commits the current write transaction and clears the transaction context.
