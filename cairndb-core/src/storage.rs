@@ -165,6 +165,10 @@ pub(crate) fn insert(
 /// Verifies the table and document exist before beginning the transaction.
 /// The BEFORE UPDATE trigger copies the old row to history automatically.
 /// Returns the updated [`Document`].
+///
+/// `patch` must be a JSON object. Non-object values (arrays, scalars, null) are
+/// rejected with `Error::Json` because `json_patch` would produce non-object `_data`,
+/// which would cause an `unreachable!` panic during document materialization.
 pub(crate) fn update(
     conn: &Connection,
     table: &str,
@@ -172,6 +176,11 @@ pub(crate) fn update(
     patch: Value,
 ) -> Result<Document> {
     schema::validate_table_name(table)?;
+
+    // Validate: patch must be a JSON object.
+    // Non-object patches (arrays, scalars, null) can produce non-object _data after
+    // json_patch, which would panic at the unreachable!() in materialization helpers.
+    let patch_map: Map<String, Value> = serde_json::from_value(patch)?;
 
     if !table_exists(conn, table)? {
         return Err(Error::TableNotFound(table.to_string()));
@@ -181,7 +190,7 @@ pub(crate) fn update(
         return Err(Error::DocumentNotFound(id.to_string()));
     }
 
-    let patch_json = serde_json::to_string(&patch)?;
+    let patch_json = serde_json::to_string(&Value::Object(patch_map))?;
     let (txn_id, ts) = versioning::begin_write(conn)?;
 
     let execute_result = conn
@@ -478,6 +487,12 @@ pub(crate) fn query_between(
 
     let from_ts = iso8601_to_epoch_ms(from_iso)?;
     let to_ts = iso8601_to_epoch_ms(to_iso)?;
+
+    // Guard: reversed or equal ranges produce no valid interval — return empty result.
+    if from_ts >= to_ts {
+        return Ok(QueryResult::new(vec![]));
+    }
+
     let mut docs = Vec::new();
 
     // History rows: active during [from, to)
@@ -577,7 +592,7 @@ pub(crate) fn iso8601_to_epoch_ms(s: &str) -> Result<i64> {
     let ms    = parse_digits_i64(&b[20..23])?;
 
     if !(1..=12).contains(&month)
-        || !(1..=31).contains(&day)
+        || day < 1
         || hour > 23
         || min > 59
         || sec > 59
@@ -587,9 +602,39 @@ pub(crate) fn iso8601_to_epoch_ms(s: &str) -> Result<i64> {
         )));
     }
 
+    // Validate day against the actual calendar length for this month/year.
+    // For example, 2024-02-31 and 2024-04-31 are rejected even though
+    // days_from_civil would silently normalise them.
+    let max_day = days_in_month(year, month);
+    if day > max_day {
+        return Err(Error::InvalidTimestamp(format!(
+            "invalid day {day} for {year}-{month:02}: month has {max_day} days"
+        )));
+    }
+
     let days = days_from_civil(year, month, day);
     let epoch_secs = days * 86_400 + hour * 3_600 + min * 60 + sec;
     Ok(epoch_secs * 1_000 + ms)
+}
+
+/// Returns the number of days in the given month (1-indexed), accounting for leap years.
+///
+/// Returns 0 for any month value outside 1–12 (caller must validate the month
+/// before calling this function).
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            // Gregorian leap-year rule
+            if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 0, // caller has already validated 1..=12
+    }
 }
 
 /// Converts (year, month, day) to days since Unix epoch (1970-01-01).
@@ -1462,6 +1507,184 @@ mod tests {
 
         let qr = query_between(&conn, "events", "1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.001Z").unwrap();
         assert!(qr.is_empty(), "query_between entirely before data should return empty");
+    }
+
+    // ------------------------------------------------------------------
+    // Fix: update() rejects non-object patches (Issue #1)
+    // ------------------------------------------------------------------
+
+    /// update() with an array patch returns Err (not a panic)
+    #[test]
+    fn update_with_array_patch_returns_error() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
+        let result = update(&conn, "events", doc.id(), json!([1, 2, 3]));
+        assert!(
+            result.is_err(),
+            "array patch should return Err, got Ok"
+        );
+    }
+
+    /// update() with a scalar (integer) patch returns Err
+    #[test]
+    fn update_with_scalar_patch_returns_error() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
+        let result = update(&conn, "events", doc.id(), json!(42));
+        assert!(
+            result.is_err(),
+            "scalar patch should return Err, got Ok"
+        );
+    }
+
+    /// update() with a null patch returns Err
+    #[test]
+    fn update_with_null_patch_returns_error() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
+        let result = update(&conn, "events", doc.id(), json!(null));
+        assert!(
+            result.is_err(),
+            "null patch should return Err, got Ok"
+        );
+    }
+
+    /// update() with a string patch returns Err
+    #[test]
+    fn update_with_string_patch_returns_error() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
+        let result = update(&conn, "events", doc.id(), json!("a string"));
+        assert!(
+            result.is_err(),
+            "string patch should return Err, got Ok"
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Fix: iso8601_to_epoch_ms() rejects invalid calendar dates (Issue #2)
+    // ------------------------------------------------------------------
+
+    /// Feb 31 is invalid (February has at most 29 days)
+    #[test]
+    fn iso8601_rejects_feb_31() {
+        let result = iso8601_to_epoch_ms("2024-02-31T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2024-02-31 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// Feb 30 is always invalid
+    #[test]
+    fn iso8601_rejects_feb_30() {
+        let result = iso8601_to_epoch_ms("2024-02-30T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2024-02-30 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// Feb 29 is valid in a leap year
+    #[test]
+    fn iso8601_accepts_feb_29_leap_year() {
+        // 2024 is a leap year (divisible by 4, not by 100)
+        let result = iso8601_to_epoch_ms("2024-02-29T00:00:00.000Z");
+        assert!(result.is_ok(), "2024-02-29 should be valid: {result:?}");
+    }
+
+    /// Feb 29 is invalid in a non-leap year
+    #[test]
+    fn iso8601_rejects_feb_29_non_leap_year() {
+        // 2023 is not a leap year
+        let result = iso8601_to_epoch_ms("2023-02-29T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2023-02-29 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// April 31 is invalid (April has 30 days)
+    #[test]
+    fn iso8601_rejects_apr_31() {
+        let result = iso8601_to_epoch_ms("2024-04-31T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2024-04-31 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// Month 13 is invalid
+    #[test]
+    fn iso8601_rejects_month_13() {
+        let result = iso8601_to_epoch_ms("2024-13-01T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2024-13-01 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// Day 0 is invalid
+    #[test]
+    fn iso8601_rejects_day_zero() {
+        let result = iso8601_to_epoch_ms("2024-01-00T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "2024-01-00 should be InvalidTimestamp, got {result:?}"
+        );
+    }
+
+    /// Century year 1900 is not a leap year (divisible by 100 but not 400)
+    #[test]
+    fn iso8601_rejects_feb_29_century_non_leap() {
+        let result = iso8601_to_epoch_ms("1900-02-29T00:00:00.000Z");
+        assert!(
+            matches!(result, Err(Error::InvalidTimestamp(_))),
+            "1900-02-29 should be InvalidTimestamp (1900 not a leap year), got {result:?}"
+        );
+    }
+
+    /// Year 2000 IS a leap year (divisible by 400)
+    #[test]
+    fn iso8601_accepts_feb_29_year_2000() {
+        let result = iso8601_to_epoch_ms("2000-02-29T00:00:00.000Z");
+        assert!(result.is_ok(), "2000-02-29 should be valid (year 2000 is a leap year): {result:?}");
+    }
+
+    // ------------------------------------------------------------------
+    // Fix: query_between() returns empty for from >= to (Issue #3)
+    // ------------------------------------------------------------------
+
+    /// query_between with from == to returns empty (degenerate range)
+    #[test]
+    fn query_between_equal_timestamps_returns_empty() {
+        let (conn, mut cache) = open_conn();
+        insert(&conn, &mut cache, "events", json!({"v": 1})).unwrap();
+
+        let ts = "2024-01-01T00:00:00.000Z";
+        let qr = query_between(&conn, "events", ts, ts).unwrap();
+        assert!(
+            qr.is_empty(),
+            "query_between with equal timestamps should return empty, got {} docs",
+            qr.len()
+        );
+    }
+
+    /// query_between with from > to (reversed range) returns empty
+    #[test]
+    fn query_between_reversed_range_returns_empty() {
+        let (conn, mut cache) = open_conn();
+        insert(&conn, &mut cache, "events", json!({"v": 1})).unwrap();
+
+        // from is after to
+        let from = "2099-01-01T00:00:00.000Z";
+        let to   = "2024-01-01T00:00:00.000Z";
+        let qr = query_between(&conn, "events", from, to).unwrap();
+        assert!(
+            qr.is_empty(),
+            "query_between with reversed range should return empty, got {} docs",
+            qr.len()
+        );
     }
 
     /// VAL-QRY-009: query_between() returns versions active during range
