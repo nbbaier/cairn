@@ -8,7 +8,7 @@ Exploratory Spec — April 2026
 
 This document explores what it would look like to build an embedded equivalent — something that is to Endatabas what SQLite is to Postgres. The proposed foundation is Turso (the Rust-based SQLite-compatible database), extended with temporal SQL semantics, automatic versioning via CDC, and a schema-flexible document model.
 
-The working name for this project is **cairn-db** (placeholder).
+The working name for this project is **cairn** (placeholder).
 
 
 
@@ -129,7 +129,7 @@ CREATE INDEX _events_history_time
 
 ### Why CDC matters here
 
-Rather than using SQLite triggers (fragile, hard to maintain, no access to transaction context), cairn-db would use Turso's CDC stream to populate history tables. When a write hits `_events_current`:
+Rather than using SQLite triggers (fragile, hard to maintain, no access to transaction context), cairn would use Turso's CDC stream to populate history tables. When a write hits `_events_current`:
 
 1. The CDC listener captures the before-image of the affected row(s).
 2. The before-image is appended to `_events_history` with `_valid_to` set to the current transaction timestamp.
@@ -157,7 +157,7 @@ This enables queries like "show me the database as it was at transaction 42" in 
 
 ### How it works
 
-Tables in cairn-db do not require `CREATE TABLE` with predefined columns. Instead:
+Tables in cairn do not require `CREATE TABLE` with predefined columns. Instead:
 
 - `INSERT INTO events {...}` auto-creates the table if it doesn't exist.
 - Each row is stored as a JSONB document in the `_data` column.
@@ -177,7 +177,7 @@ CREATE TABLE _schema_registry (
 
 ### Document literals in SQL
 
-Following Endatabas, cairn-db's parser would support document literal syntax:
+Following Endatabas, cairn's parser would support document literal syntax:
 
 ```sql
 -- Endatabas-style document INSERT
@@ -314,7 +314,7 @@ VALUES ('users', 'user-123', '2026-04-04T12:00:00Z');
 
 ## UPDATE and DELETE Semantics
 
-In cairn-db, `UPDATE` and `DELETE` are non-destructive by default. They create new versions.
+In cairn, `UPDATE` and `DELETE` are non-destructive by default. They create new versions.
 
 ### UPDATE
 
@@ -436,7 +436,7 @@ let all_versions: QueryResult = db.query(
 ### JavaScript / TypeScript (via WASM or native bindings)
 
 ```typescript
-import { open } from 'cairn-db';
+import { open } from 'cairn';
 
 const db = await open('mydata.db');
 
