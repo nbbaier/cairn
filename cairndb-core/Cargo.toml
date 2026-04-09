@@ -1,0 +1,11 @@
+[package]
+name = "cairndb-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = { version = "0.34", features = ["bundled"] }
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
