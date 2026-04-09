@@ -1,0 +1,108 @@
+{
+  "groupId": "doc-b",
+  "testedAt": "2026-04-09T19:35:52Z",
+  "isolation": {
+    "milestone": "foundation",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "cargoTargetDir": "/tmp/cairn-user-testing-doc-b",
+    "assignedAssertions": [
+      "VAL-DOC-006",
+      "VAL-DOC-007",
+      "VAL-DOC-008",
+      "VAL-DOC-009"
+    ]
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-DOC-006",
+      "title": "Document Serialize/Deserialize round-trip",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test document_serde_roundtrip",
+          "expected": "Round-trip preserves all document fields",
+          "observed": "test document::tests::document_serde_roundtrip ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-b/VAL-DOC-006.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-b cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_serde_roundtrip",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-007",
+      "title": "QueryResult accessors",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test query_result_accessors",
+          "expected": ".len(), .is_empty(), and .documents() assertions pass",
+          "observed": "test document::tests::query_result_accessors ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-b/VAL-DOC-007.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-b cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core query_result_accessors",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-008",
+      "title": "QueryResult iteration",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test query_result_into_iter",
+          "expected": "IntoIterator iteration yields each document",
+          "observed": "test document::tests::query_result_into_iter ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-b/VAL-DOC-008.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-b cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core query_result_into_iter",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-009",
+      "title": "Empty QueryResult",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test query_result_empty",
+          "expected": "Empty QueryResult reports is_empty=true and len=0",
+          "observed": "test document::tests::query_result_empty ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-b/VAL-DOC-009.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-b cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core query_result_empty",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 4 assertions (VAL-DOC-006..009): 4 passed, 0 failed, 0 blocked."
+}

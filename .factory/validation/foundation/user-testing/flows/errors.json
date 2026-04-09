@@ -1,0 +1,100 @@
+{
+  "groupId": "errors",
+  "testedAt": "2026-04-09T19:36:11Z",
+  "isolation": {
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-errors",
+    "tool": "cargo test CLI",
+    "assignedAssertions": [
+      "VAL-ERR-001",
+      "VAL-ERR-002",
+      "VAL-ERR-003",
+      "VAL-ERR-004"
+    ]
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-ERR-001",
+      "title": "Error enum has all required variants",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run cargo test pattern for required-variants assertion",
+          "expected": "Targeted test passes",
+          "observed": "test error::tests::all_variants_constructible ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-errors cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core all_variants_constructible",
+        "log": "foundation/errors/VAL-ERR-001.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERR-002",
+      "title": "Error implements std::error::Error and Display",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run cargo test pattern for non-empty display messages",
+          "expected": "Targeted test passes",
+          "observed": "test error::tests::display_messages_non_empty ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-errors cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core display_messages_non_empty",
+        "log": "foundation/errors/VAL-ERR-002.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERR-003",
+      "title": "Conversion from rusqlite::Error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run cargo test pattern for rusqlite conversion",
+          "expected": "Targeted test passes",
+          "observed": "test error::tests::from_rusqlite_error ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-errors cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core from_rusqlite_error",
+        "log": "foundation/errors/VAL-ERR-003.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERR-004",
+      "title": "Conversion from serde_json::Error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run cargo test pattern for serde_json conversion",
+          "expected": "Targeted test passes",
+          "observed": "test error::tests::from_serde_json_error ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-errors cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core from_serde_json_error",
+        "log": "foundation/errors/VAL-ERR-004.log",
+        "exitCode": 0
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 4 assigned error assertions; all 4 passed via assertion-scoped cargo test runs. Optional confidence validator run also passed for full cairndb-core package (52 passed, 0 failed).",
+  "additionalEvidence": {
+    "commandSummary": "foundation/errors/command-summary.txt",
+    "fullPackageLog": "foundation/errors/package-full.log"
+  }
+}

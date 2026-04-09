@@ -1,0 +1,146 @@
+{
+  "groupId": "txn",
+  "testedAt": "2026-04-09T19:36:14Z",
+  "isolation": {
+    "milestone": "foundation",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "cargoTargetDir": "/tmp/cairn-user-testing-txn",
+    "assignedAssertions": [
+      "VAL-TXN-001",
+      "VAL-TXN-002",
+      "VAL-TXN-003",
+      "VAL-TXN-004",
+      "VAL-TXN-005",
+      "VAL-TXN-006"
+    ]
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-TXN-001",
+      "title": "Transaction IDs monotonically increasing",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test: txn_ids_are_monotonically_increasing",
+          "expected": "Sequential write operations produce strictly increasing txn_ids and test passes",
+          "observed": "test versioning::tests::txn_ids_are_monotonically_increasing ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-001.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core txn_ids_are_monotonically_increasing -- --nocapture",
+        "logSnippet": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TXN-002",
+      "title": "Timestamps are millisecond-precision epoch integers",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted timestamp range tests with filter: reasonable",
+          "expected": "_timestamp values are epoch-millisecond integers within post-2020 and pre-2100 bounds",
+          "observed": "test versioning::tests::timestamp_in_reasonable_range ... ok; test versioning::tests::begin_write_returns_reasonable_timestamp ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-002.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core reasonable -- --nocapture",
+        "logSnippet": "running 2 tests ... both passed; test result: ok. 2 passed; 0 failed"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TXN-003",
+      "title": "Transaction metadata recorded",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test: commit_records_transaction_in_transactions_table",
+          "expected": "A committed write creates matching txn_id metadata row with non-null timestamp in _transactions",
+          "observed": "test versioning::tests::commit_records_transaction_in_transactions_table ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-003.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core commit_records_transaction_in_transactions_table -- --nocapture",
+        "logSnippet": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TXN-004",
+      "title": "Transaction context lifecycle",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test: context_has_row_during_transaction_and_is_cleared_after_commit",
+          "expected": "_cairn_tx_context row count is 1 during write transaction and 0 after commit",
+          "observed": "test versioning::tests::context_has_row_during_transaction_and_is_cleared_after_commit ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-004.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core context_has_row_during_transaction_and_is_cleared_after_commit -- --nocapture",
+        "logSnippet": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TXN-005",
+      "title": "Rollback cleans up",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test: rollback_leaves_no_transactions_entry_and_clears_context",
+          "expected": "Rollback leaves no _transactions entry and _cairn_tx_context is empty",
+          "observed": "test versioning::tests::rollback_leaves_no_transactions_entry_and_clears_context ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-005.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core rollback_leaves_no_transactions_entry_and_clears_context -- --nocapture",
+        "logSnippet": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TXN-006",
+      "title": "Distinct IDs across transactions",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test: distinct_ids_across_transactions",
+          "expected": "N write operations produce N distinct transaction IDs",
+          "observed": "test versioning::tests::distinct_ids_across_transactions ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/txn/VAL-TXN-006.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-txn cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core distinct_ids_across_transactions -- --nocapture",
+        "logSnippet": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 6 assertions (VAL-TXN-001..006): 6 passed, 0 failed, 0 blocked."
+}

@@ -21,3 +21,11 @@ Validators should:
 1. Run `cargo test --package cairndb-core` and verify exit code 0
 2. Check that test names matching assertion patterns exist and pass
 3. For specific assertions, run targeted tests: `cargo test --package cairndb-core <pattern>`
+
+## Flow Validator Guidance: cargo-test-cli
+
+- Stay within repository path `/Users/nbbaier/Code/cairn` and mission path `/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d`.
+- Do not modify application/library source code during validation.
+- Use assertion-scoped test commands only (targeted `cargo test --package cairndb-core <pattern>`), plus optional one final package test for confidence.
+- Use an isolated build directory per flow via `CARGO_TARGET_DIR=/tmp/cairn-user-testing-<group-id>` to avoid lock contention across concurrent validators.
+- Treat any assertion without a clear corresponding passing test/evidence line as failed or blocked; do not infer pass status.

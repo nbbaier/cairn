@@ -1,0 +1,211 @@
+{
+  "groupId": "schema",
+  "testedAt": "2026-04-09T19:36:07Z",
+  "isolation": {
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-schema"
+  },
+  "toolsUsed": [
+    "cargo test CLI"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-SCHEMA-001",
+      "title": "Physical tables created",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-001",
+          "expected": "Test schema::tests::ensure_table_creates_current_and_history passes (exit code 0)",
+          "observed": "test schema::tests::ensure_table_creates_current_and_history ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-001.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::ensure_table_creates_current_and_history -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::ensure_table_creates_current_and_history ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-002",
+      "title": "BEFORE UPDATE trigger exists and works",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-002",
+          "expected": "Test schema::tests::before_update_trigger_copies_row_to_history passes (exit code 0)",
+          "observed": "test schema::tests::before_update_trigger_copies_row_to_history ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-002.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::before_update_trigger_copies_row_to_history -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::before_update_trigger_copies_row_to_history ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-003",
+      "title": "BEFORE DELETE trigger exists and works",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-003",
+          "expected": "Test schema::tests::before_delete_trigger_copies_row_to_history passes (exit code 0)",
+          "observed": "test schema::tests::before_delete_trigger_copies_row_to_history ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-003.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::before_delete_trigger_copies_row_to_history -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::before_delete_trigger_copies_row_to_history ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-004",
+      "title": "Composite index on history table",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-004",
+          "expected": "Test schema::tests::ensure_table_creates_composite_index passes (exit code 0)",
+          "observed": "test schema::tests::ensure_table_creates_composite_index ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-004.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::ensure_table_creates_composite_index -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::ensure_table_creates_composite_index ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-005",
+      "title": "create_table is idempotent",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-005",
+          "expected": "Test db::tests::create_table_idempotent_via_database passes (exit code 0)",
+          "observed": "test db::tests::create_table_idempotent_via_database ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-005.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::create_table_idempotent_via_database -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test db::tests::create_table_idempotent_via_database ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-006",
+      "title": "System tables created on DB init",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-006",
+          "expected": "Test db::tests::system_tables_created_on_init passes (exit code 0)",
+          "observed": "test db::tests::system_tables_created_on_init ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-006.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::system_tables_created_on_init -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test db::tests::system_tables_created_on_init ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-007",
+      "title": "Table name validation rejects injection",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-007",
+          "expected": "Test schema::tests::validate_rejects_special_characters passes (exit code 0)",
+          "observed": "test schema::tests::validate_rejects_special_characters ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-007.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::validate_rejects_special_characters -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::validate_rejects_special_characters ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-SCHEMA-008",
+      "title": "Table name validation accepts valid names",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-SCHEMA-008",
+          "expected": "Test schema::tests::validate_accepts_valid_names passes (exit code 0)",
+          "observed": "test schema::tests::validate_accepts_valid_names ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-SCHEMA-008.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::validate_accepts_valid_names -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::validate_accepts_valid_names ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-005",
+      "title": "Empty table name rejected",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-005",
+          "expected": "Test schema::tests::validate_rejects_empty_name passes (exit code 0)",
+          "observed": "test schema::tests::validate_rejects_empty_name ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/schema/VAL-BOUND-005.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-schema cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core schema::tests::validate_rejects_empty_name -- --exact --nocapture",
+        "exitCode": 0,
+        "logSnippet": "test schema::tests::validate_rejects_empty_name ... ok"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 9 assertions via targeted cargo tests; all 9 passed. Additional package-level run (`cargo test --package cairndb-core`) also passed (52/52).",
+  "additionalEvidence": {
+    "assertionStatus": "foundation/schema/assertion-status.txt",
+    "testList": "foundation/schema/test-list.log",
+    "fullPackageRun": "foundation/schema/full-package.log"
+  }
+}
