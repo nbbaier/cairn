@@ -1,0 +1,24 @@
+{
+  "featureId": "fix-operations-scrutiny-issues",
+  "reviewedAt": "2026-04-09T21:03:07Z",
+  "commitId": "f1360a8",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix commit fully addresses the prior scrutiny failures without introducing regressions in the reviewed paths: update() now rejects non-object patches before json_patch, iso8601_to_epoch_ms() now rejects invalid calendar dates with month-aware/leap-year-aware validation, and query_between() now returns an empty result for from >= to. Added tests directly cover all three fixes.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill requires RED-first test additions, but this fix session still applied implementation edits before adding the new fix tests while handoff.skillFeedback marked followedProcedure=true. This indicates a procedure-enforcement gap in the skill/handoff process.",
+      "evidence": "Skill requirement: /Users/nbbaier/Code/cairn/.factory/skills/rust-worker/SKILL.md (\"Write failing tests first (RED)\"). Transcript skeleton for workerSessionId 455836c5-7ad7-48fc-9327-b9fdc08f299a shows Edit operations on cairndb-core/src/storage.rs before later test additions and post-edit test runs."
+    }
+  ],
+  "addressesFailureFrom": {
+    "storage-operations": "/Users/nbbaier/Code/cairn/.factory/validation/operations/scrutiny/reviews/storage-operations.json",
+    "time-travel-queries-and-integration": "/Users/nbbaier/Code/cairn/.factory/validation/operations/scrutiny/reviews/time-travel-queries-and-integration.json"
+  },
+  "summary": "Reviewed fix-operations-scrutiny-issues at commit f1360a8 as a re-run fix review for the two prior failed features. All previously reported blocking issues are addressed by code and tests in the commit, and no new blocking or non-blocking code defects were identified in the changed areas; status is PASS."
+}

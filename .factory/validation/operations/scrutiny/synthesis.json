@@ -1,71 +1,40 @@
 {
   "milestone": "operations",
-  "round": 1,
-  "status": "fail",
+  "round": 2,
+  "status": "pass",
   "validatorsRun": {
     "test": {
       "passed": true,
-      "command": "cargo test --workspace",
+      "command": "cargo test --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
       "exitCode": 0
     },
     "typecheck": {
       "passed": true,
-      "command": "cargo check --workspace",
+      "command": "cargo check --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
       "exitCode": 0
     },
     "lint": {
       "passed": true,
-      "command": "cargo clippy --all-targets",
+      "command": "cargo clippy --all-targets --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
       "exitCode": 0
     }
   },
   "reviewsSummary": {
-    "total": 2,
-    "passed": 0,
-    "failed": 2,
-    "failedFeatures": [
-      "storage-operations",
-      "time-travel-queries-and-integration"
-    ]
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
   },
-  "blockingIssues": [
-    {
-      "featureId": "storage-operations",
-      "severity": "blocking",
-      "description": "update() accepts non-object JSON patches, which can change _data into non-object values; subsequent materialization assumes object and can panic via unreachable! in read_current_doc() path."
-    },
-    {
-      "featureId": "time-travel-queries-and-integration",
-      "severity": "blocking",
-      "description": "iso8601_to_epoch_ms does not validate calendar-correct dates (month/day and leap-year combinations), so invalid dates (e.g., 2024-02-31) are accepted and normalized, leading to incorrect query_at/query_between behavior."
-    }
-  ],
-  "appliedUpdates": [
-    {
-      "target": "library",
-      "description": "Updated .factory/library/architecture.md to remove stale temp-table references and align _cairn_tx_context lifecycle text with the regular-system-table protocol.",
-      "sourceFeature": "storage-operations"
-    }
-  ],
+  "blockingIssues": [],
+  "appliedUpdates": [],
   "suggestedGuidanceUpdates": [
     {
-      "target": "AGENTS.md",
-      "suggestion": "Add a mission-authoring guardrail: expectedBehavior statements in features.json must align with validation-contract assertions and trigger model semantics (e.g., BEFORE UPDATE/DELETE means no INSERT history rows).",
-      "evidence": "operations feature time-travel-queries-and-integration still expects lifecycle/query_all counts implying INSERT history rows, while validation-contract and implementation use mutation-only history.",
-      "isSystemic": false
-    },
-    {
       "target": "skills",
-      "suggestion": "Tighten rust-worker process enforcement by requiring explicit transcript evidence of RED-before-GREEN and flagging deviations in handoff.skillFeedback when edits precede failing test additions.",
-      "evidence": "Reviewer observed the time-travel-queries-and-integration transcript showing code edits before test additions while skill feedback still marked procedure as followed.",
-      "isSystemic": false
+      "suggestion": "Strengthen rust-worker RED-first TDD enforcement by requiring transcript evidence of failing test additions before implementation edits, and mark handoff.skillFeedback.followedProcedure=false when this sequence is not met.",
+      "evidence": "The same deviation appears in both operations sessions 1f57ddc0-16c4-48c4-aa45-e77ab7a355ba and 455836c5-7ad7-48fc-9327-b9fdc08f299a: code edits preceded new fix test additions while handoff still reported procedure followed.",
+      "isSystemic": true
     }
   ],
-  "rejectedObservations": [
-    {
-      "observation": "Architecture docs are internally contradictory about _cairn_tx_context temp vs regular table.",
-      "reason": "duplicate observation across two reviews; applied once via direct library update."
-    }
-  ],
-  "previousRound": null
+  "rejectedObservations": [],
+  "previousRound": ".factory/validation/operations/scrutiny/synthesis.round1.json"
 }
