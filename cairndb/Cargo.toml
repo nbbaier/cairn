@@ -1,0 +1,7 @@
+[package]
+name = "cairndb"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cairndb-core = { path = "../cairndb-core" }
