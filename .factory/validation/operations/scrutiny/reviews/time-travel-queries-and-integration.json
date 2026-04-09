@@ -1,0 +1,44 @@
+{
+  "featureId": "time-travel-queries-and-integration",
+  "reviewedAt": "2026-04-09T20:54:44Z",
+  "commitId": "492b2e7",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "Time-travel query APIs and broad integration coverage were added as intended, but timestamp parsing has a correctness hole: invalid calendar dates are accepted and normalized instead of returning InvalidTimestamp.",
+    "issues": [
+      {
+        "file": "cairndb-core/src/storage.rs",
+        "line": 580,
+        "severity": "blocking",
+        "description": "iso8601_to_epoch_ms validates day only as 1..=31 and does not validate calendar correctness per month/leap year. Because days_from_civil is arithmetic and normalizes overflow, inputs like 2024-02-31T00:00:00.000Z are silently accepted and mapped to a different real date instead of returning Error::InvalidTimestamp, which can make query_at/query_between return results for an unintended timestamp."
+      },
+      {
+        "file": "cairndb-core/src/storage.rs",
+        "line": 479,
+        "severity": "non_blocking",
+        "description": "query_between parses from/to but does not guard from >= to. With the current SQL (history overlap + current _valid_from < to), reversed ranges can return current rows even though [from,to) is empty by definition."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Feature expectations remain inconsistent with the implemented BEFORE-trigger-only history model: feature metadata still expects lifecycle counts that imply INSERT history rows.",
+      "evidence": "Mission features: /Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/features.json:334,341,348 still reference 3 lifecycle entries and mixed-op query_all >=5, while implementation and validation contract use 2 lifecycle history entries under BEFORE UPDATE/DELETE semantics."
+    },
+    {
+      "area": "knowledge",
+      "observation": "Architecture docs are internally contradictory about _cairn_tx_context storage location (temp vs regular table), which can mislead workers implementing transaction/versioning behavior.",
+      "evidence": "/Users/nbbaier/Code/cairn/.factory/library/architecture.md:21,35,39 describe temp table creation/drop, but line 89 states it is a regular system table (NOT temp)."
+    },
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill enforces strict RED-first TDD, but this feature transcript shows implementation edits before adding tests while handoff still marks procedure as followed.",
+      "evidence": "Skill requires 'Write failing tests first (RED)' in /Users/nbbaier/Code/cairn/.factory/skills/rust-worker/SKILL.md; transcript skeleton for workerSessionId 1f57ddc0-16c4-48c4-aa45-e77ab7a355ba shows Edit on storage.rs before subsequent test additions."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed commit 492b2e7 for feature time-travel-queries-and-integration. Coverage and API wiring are substantial, but I found a blocking timestamp-validation correctness defect in iso8601_to_epoch_ms (invalid calendar dates accepted). Report marked fail and written to the requested scrutiny review path."
+}

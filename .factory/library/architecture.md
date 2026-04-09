@@ -18,7 +18,7 @@ All implementation lives in `cairndb-core`. The `cairndb` crate re-exports its p
 ```
 db.rs (Database) ── public facade, Mutex<Connection>, delegates to internal modules
   ├── schema.rs    ── DDL generation, triggers, indexes, table cache [pub(crate)]
-  ├── versioning.rs ── transaction lifecycle, _cairn_tx_context temp table [pub(crate)]
+  ├── versioning.rs ── transaction lifecycle, _cairn_tx_context context table [pub(crate)]
   ├── storage.rs   ── CRUD operations + query execution against physical tables [pub(crate)]
   ├── document.rs  ── Document/QueryResult types, JSON conversion [pub]
   └── error.rs     ── Error enum [pub]
@@ -32,11 +32,11 @@ db.rs (Database) ── public facade, Mutex<Connection>, delegates to internal 
 ### Write Path (insert/update/delete)
 
 1. `Database` method acquires `Mutex<Connection>` lock
-2. `versioning::begin_write()` — creates `_cairn_tx_context` temp table, inserts into `_transactions`, returns (txn_id, timestamp)
+2. `versioning::begin_write()` — clears and populates `_cairn_tx_context`, inserts into `_transactions`, returns (txn_id, timestamp)
 3. `schema::ensure_table()` — creates physical tables if not exists (idempotent)
 4. `storage::insert/update/delete()` — executes SQL against `_T_current`
 5. SQLite BEFORE triggers fire — copy old row to `_T_history` (on UPDATE/DELETE)
-6. `versioning::commit()` — commits SQL transaction, drops temp table
+6. `versioning::commit()` — commits SQL transaction, then clears `_cairn_tx_context`
 7. Returns `Document` to caller
 
 ### Read Path (query/get)
