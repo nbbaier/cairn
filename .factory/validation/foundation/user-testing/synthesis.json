@@ -1,0 +1,60 @@
+{
+  "milestone": "foundation",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-BOUND-005",
+    "VAL-DOC-001",
+    "VAL-DOC-002",
+    "VAL-DOC-003",
+    "VAL-DOC-004",
+    "VAL-DOC-005",
+    "VAL-DOC-006",
+    "VAL-DOC-007",
+    "VAL-DOC-008",
+    "VAL-DOC-009",
+    "VAL-ERR-001",
+    "VAL-ERR-002",
+    "VAL-ERR-003",
+    "VAL-ERR-004",
+    "VAL-SCHEMA-001",
+    "VAL-SCHEMA-002",
+    "VAL-SCHEMA-003",
+    "VAL-SCHEMA-004",
+    "VAL-SCHEMA-005",
+    "VAL-SCHEMA-006",
+    "VAL-SCHEMA-007",
+    "VAL-SCHEMA-008",
+    "VAL-TXN-001",
+    "VAL-TXN-002",
+    "VAL-TXN-003",
+    "VAL-TXN-004",
+    "VAL-TXN-005",
+    "VAL-TXN-006"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added \"Flow Validator Guidance: cargo-test-cli\" with isolation boundaries and CARGO_TARGET_DIR requirements for concurrent flow validators.",
+      "source": "setup"
+    }
+  ],
+  "previousRound": null,
+  "synthesizedAt": "2026-04-09T19:40:50.664194Z",
+  "toolsUsed": [
+    "cargo test",
+    "cargo test CLI"
+  ],
+  "frictions": [
+    "Two attempts to run the doc-a assertions through the user-testing-flow-validator subagent failed due permissions mode refusal; assertions were executed directly with equivalent isolated cargo test commands."
+  ],
+  "blockers": []
+}

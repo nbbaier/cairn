@@ -1,0 +1,249 @@
+{
+  "groupId": "delete-erase",
+  "testedAt": "2026-04-09T21:08:30.602897Z",
+  "isolation": {
+    "surface": "cargo-test-cli",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-ops-delete-erase"
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-DEL-001",
+      "title": "Deleted document excluded from query()",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_excluded_from_query -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_excluded_from_query passes for VAL-DEL-001",
+          "observed": "test storage::tests::delete_excluded_from_query ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_excluded_from_query -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-001.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_excluded_from_query ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DEL-002",
+      "title": "Deleted document excluded from get()",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_excluded_from_get -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_excluded_from_get passes for VAL-DEL-002",
+          "observed": "test storage::tests::delete_excluded_from_get ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_excluded_from_get -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-002.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_excluded_from_get ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DEL-003",
+      "title": "Deleted document in history with _op DELETE",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_preserved_in_history_with_op_delete -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_preserved_in_history_with_op_delete passes for VAL-DEL-003",
+          "observed": "test storage::tests::delete_preserved_in_history_with_op_delete ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_preserved_in_history_with_op_delete -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-003.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_preserved_in_history_with_op_delete ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DEL-004",
+      "title": "History _valid_to set on delete",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_history_valid_to_set -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_history_valid_to_set passes for VAL-DEL-004",
+          "observed": "test storage::tests::delete_history_valid_to_set ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_history_valid_to_set -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-004.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_history_valid_to_set ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DEL-005",
+      "title": "Delete non-existent document returns error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_nonexistent_doc_returns_error -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_nonexistent_doc_returns_error passes for VAL-DEL-005",
+          "observed": "test storage::tests::delete_nonexistent_doc_returns_error ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_nonexistent_doc_returns_error -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-005.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_nonexistent_doc_returns_error ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DEL-006",
+      "title": "Delete after update preserves full history",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_after_update_preserves_full_history -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::delete_after_update_preserves_full_history passes for VAL-DEL-006",
+          "observed": "test storage::tests::delete_after_update_preserves_full_history ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::delete_after_update_preserves_full_history -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-DEL-006.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::delete_after_update_preserves_full_history ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERASE-001",
+      "title": "Erased document not in current state",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_from_current_state -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::erase_removes_from_current_state passes for VAL-ERASE-001",
+          "observed": "test storage::tests::erase_removes_from_current_state ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_from_current_state -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-ERASE-001.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::erase_removes_from_current_state ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERASE-002",
+      "title": "Erased document not in history",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_from_history -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::erase_removes_from_history passes for VAL-ERASE-002",
+          "observed": "test storage::tests::erase_removes_from_history ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_from_history -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-ERASE-002.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::erase_removes_from_history ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERASE-003",
+      "title": "Erasure logged",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_logs_to_erasure_log -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::erase_logs_to_erasure_log passes for VAL-ERASE-003",
+          "observed": "test storage::tests::erase_logs_to_erasure_log ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_logs_to_erasure_log -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-ERASE-003.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::erase_logs_to_erasure_log ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERASE-004",
+      "title": "Erase removes ALL history entries",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_all_history_entries -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::erase_removes_all_history_entries passes for VAL-ERASE-004",
+          "observed": "test storage::tests::erase_removes_all_history_entries ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_removes_all_history_entries -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-ERASE-004.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::erase_removes_all_history_entries ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-ERASE-005",
+      "title": "Erase is idempotent",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_is_idempotent -- --exact --nocapture",
+          "expected": "Targeted test storage::tests::erase_is_idempotent passes for VAL-ERASE-005",
+          "observed": "test storage::tests::erase_is_idempotent ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-delete-erase cargo test --package cairndb-core storage::tests::erase_is_idempotent -- --exact --nocapture",
+        "log": "operations/delete-erase/VAL-ERASE-005.log",
+        "exitCode": 0,
+        "observedPassingTestLines": [
+          "test storage::tests::erase_is_idempotent ... ok"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 11 assertions: 11 passed, 0 failed, 0 blocked."
+}

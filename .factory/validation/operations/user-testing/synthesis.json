@@ -1,0 +1,27 @@
+{
+  "milestone": "operations",
+  "round": 2,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-OPEN-005"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": ".factory/validation/operations/user-testing/synthesis.round1.json",
+  "synthesizedAt": "2026-04-09T21:18:41Z",
+  "toolsUsed": [
+    "cargo test",
+    "rg"
+  ],
+  "frictions": [
+    "Using '--exact' with bare pattern ran 0 tests; reran without '--exact' to execute the intended test."
+  ],
+  "blockers": []
+}

@@ -1,0 +1,40 @@
+{
+  "milestone": "operations",
+  "round": 2,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cargo check --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cargo clippy --all-targets --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "Strengthen rust-worker RED-first TDD enforcement by requiring transcript evidence of failing test additions before implementation edits, and mark handoff.skillFeedback.followedProcedure=false when this sequence is not met.",
+      "evidence": "The same deviation appears in both operations sessions 1f57ddc0-16c4-48c4-aa45-e77ab7a355ba and 455836c5-7ad7-48fc-9327-b9fdc08f299a: code edits preceded new fix test additions while handoff still reported procedure followed.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [],
+  "previousRound": ".factory/validation/operations/scrutiny/synthesis.round1.json"
+}

@@ -1,0 +1,135 @@
+{
+  "groupId": "doc-a",
+  "testedAt": "2026-04-09T19:37:00Z",
+  "isolation": {
+    "milestone": "foundation",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "cargoTargetDir": "/tmp/cairn-user-testing-doc-a",
+    "assignedAssertions": [
+      "VAL-DOC-001",
+      "VAL-DOC-002",
+      "VAL-DOC-003",
+      "VAL-DOC-004",
+      "VAL-DOC-005"
+    ]
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-DOC-001",
+      "title": "Document exposes .id() returning UUIDv7-format string",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test document_id",
+          "expected": "Document id accessor test passes",
+          "observed": "test document::tests::document_id ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-a/VAL-DOC-001.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-a cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_id",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-002",
+      "title": "Document exposes .system_time() returning ISO 8601 string",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test document_system_time_iso8601",
+          "expected": "Document system_time accessor test passes with ISO8601 output",
+          "observed": "test document::tests::document_system_time_iso8601 ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-a/VAL-DOC-002.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-a cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_system_time_iso8601",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-003",
+      "title": "Document exposes .data() returning user's JSON data",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test document_data_access",
+          "expected": "Document data accessor returns JSON payload fields",
+          "observed": "test document::tests::document_data_access ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-a/VAL-DOC-003.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-a cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_data_access",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-004",
+      "title": "Document .get(key) for field access",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted tests document_get_existing_key and document_get_missing_key",
+          "expected": ".get returns Some for existing keys and None for missing keys",
+          "observed": "test document::tests::document_get_missing_key ... ok; test document::tests::document_get_existing_key ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-a/VAL-DOC-004.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-a cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_get_",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-DOC-005",
+      "title": "Document exposes .txn_id()",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted test document_txn_id",
+          "expected": "Document transaction ID accessor returns expected value",
+          "observed": "test document::tests::document_txn_id ... ok"
+        }
+      ],
+      "evidence": {
+        "terminalSnapshots": [
+          "foundation/doc-a/VAL-DOC-005.log"
+        ],
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-doc-a cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core document_txn_id",
+        "exitCode": 0,
+        "resultLine": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.00s"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    "Two attempts to run the doc-a assertions through the user-testing-flow-validator subagent failed due permissions mode refusal; assertions were executed directly with equivalent isolated cargo test commands."
+  ],
+  "blockers": [],
+  "summary": "Tested 5 assertions (VAL-DOC-001..005): 5 passed, 0 failed, 0 blocked. Package-level cargo test also passed (52/52).",
+  "additionalEvidence": {
+    "fullPackageLog": "foundation/doc-a/package-full.log"
+  }
+}

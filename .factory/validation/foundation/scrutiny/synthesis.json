@@ -1,0 +1,38 @@
+{
+  "milestone": "foundation",
+  "round": 2,
+  "status": "pass",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "cargo test --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "cargo check --workspace --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "cargo clippy --all-targets --manifest-path \"/Users/nbbaier/Code/cairn/Cargo.toml\"",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "The rust-worker skill requires explicit RED-first evidence, but the fix transcript did not show a failing test step before implementation.",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": ".factory/validation/foundation/scrutiny/synthesis.round1.json"
+}

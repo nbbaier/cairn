@@ -1,0 +1,28 @@
+{
+  "featureId": "storage-operations",
+  "reviewedAt": "2026-04-09T20:53:46Z",
+  "commitId": "1460a7c",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "Feature coverage is broad and tests are extensive, but there is a blocking reliability bug in update-path data validation that can panic library code.",
+    "issues": [
+      {
+        "file": "cairndb-core/src/storage.rs",
+        "line": 184,
+        "severity": "blocking",
+        "description": "update() accepts any JSON patch and passes it to json_patch without enforcing object output; a non-object patch (e.g. `1` or `[]`) can replace `_data` with a scalar/array. The subsequent read_current_doc() path assumes object data and hits `unreachable!` at lines 76-80, causing a panic in public API flows (`Database::update`, later `get/query`)."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "architecture.md is internally inconsistent about `_cairn_tx_context` storage semantics (temp vs regular table), which can mislead implementation choices.",
+      "evidence": ".factory/library/architecture.md lines 21/35/39 describe a temp table lifecycle, while line 89 states `_cairn_tx_context` is a regular system table (NOT temp)."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed feature storage-operations at commit 1460a7c. Marked FAIL due to a blocking panic path: non-object update patches can produce non-object `_data`, then `unreachable!` panics during document materialization. Report written to scrutiny reviews path."
+}
