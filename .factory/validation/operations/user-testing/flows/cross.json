@@ -1,0 +1,364 @@
+{
+  "groupId": "cross",
+  "testedAt": "2026-04-09T21:08:44.641903Z",
+  "isolation": {
+    "surface": "cargo-test-cli",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "CARGO_TARGET_DIR": "/tmp/cairn-user-testing-ops-cross"
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CROSS-001",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_full_document_lifecycle`",
+          "expected": "Target test for VAL-CROSS-001 executes and passes",
+          "observed": "test db::tests::cross_full_document_lifecycle ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_full_document_lifecycle",
+        "log": "evidence/operations/cross/VAL-CROSS-001.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_full_document_lifecycle ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_time_travel_correctness`",
+          "expected": "Target test for VAL-CROSS-002 executes and passes",
+          "observed": "test db::tests::cross_time_travel_correctness ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_time_travel_correctness",
+        "log": "evidence/operations/cross/VAL-CROSS-002.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_time_travel_correctness ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_multi_table_isolation`",
+          "expected": "Target test for VAL-CROSS-003 executes and passes",
+          "observed": "test db::tests::cross_multi_table_isolation ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_multi_table_isolation",
+        "log": "evidence/operations/cross/VAL-CROSS-003.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_multi_table_isolation ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_persistence_round_trip`",
+          "expected": "Target test for VAL-CROSS-004 executes and passes",
+          "observed": "test db::tests::cross_persistence_round_trip ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_persistence_round_trip",
+        "log": "evidence/operations/cross/VAL-CROSS-004.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_persistence_round_trip ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-005",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_transaction_ordering`",
+          "expected": "Target test for VAL-CROSS-005 executes and passes",
+          "observed": "test db::tests::cross_transaction_ordering ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_transaction_ordering",
+        "log": "evidence/operations/cross/VAL-CROSS-005.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_transaction_ordering ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-006",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_erase_completeness`",
+          "expected": "Target test for VAL-CROSS-006 executes and passes",
+          "observed": "test db::tests::cross_erase_completeness ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_erase_completeness",
+        "log": "evidence/operations/cross/VAL-CROSS-006.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_erase_completeness ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-007",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_auto_create_explicit_create_interop`",
+          "expected": "Target test for VAL-CROSS-007 executes and passes",
+          "observed": "test db::tests::cross_auto_create_explicit_create_interop ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_auto_create_explicit_create_interop",
+        "log": "evidence/operations/cross/VAL-CROSS-007.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_auto_create_explicit_create_interop ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-008",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_mixed_operations_query_correctness`",
+          "expected": "Target test for VAL-CROSS-008 executes and passes",
+          "observed": "test db::tests::cross_mixed_operations_query_correctness ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_mixed_operations_query_correctness",
+        "log": "evidence/operations/cross/VAL-CROSS-008.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_mixed_operations_query_correctness ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-009",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_complex_nested_json_roundtrip`",
+          "expected": "Target test for VAL-CROSS-009 executes and passes",
+          "observed": "test db::tests::cross_complex_nested_json_roundtrip ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_complex_nested_json_roundtrip",
+        "log": "evidence/operations/cross/VAL-CROSS-009.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_complex_nested_json_roundtrip ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-010",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_concurrent_thread_safety`",
+          "expected": "Target test for VAL-CROSS-010 executes and passes",
+          "observed": "test db::tests::cross_concurrent_thread_safety ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_concurrent_thread_safety",
+        "log": "evidence/operations/cross/VAL-CROSS-010.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_concurrent_thread_safety ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-011",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_error_recovery_after_failures`",
+          "expected": "Target test for VAL-CROSS-011 executes and passes",
+          "observed": "test db::tests::cross_error_recovery_after_failures ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_error_recovery_after_failures",
+        "log": "evidence/operations/cross/VAL-CROSS-011.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_error_recovery_after_failures ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-012",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_surgical_erase`",
+          "expected": "Target test for VAL-CROSS-012 executes and passes",
+          "observed": "test db::tests::cross_surgical_erase ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_surgical_erase",
+        "log": "evidence/operations/cross/VAL-CROSS-012.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_surgical_erase ... ok"
+        ]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-013",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run assertion-scoped test `CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_history_persists_across_reopen`",
+          "expected": "Target test for VAL-CROSS-013 executes and passes",
+          "observed": "test db::tests::cross_history_persists_across_reopen ... ok"
+        },
+        {
+          "action": "Check cargo test process exit status",
+          "expected": "Exit code 0",
+          "observed": "Exit code 0"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-cross cargo test --package cairndb-core cross_history_persists_across_reopen",
+        "log": "evidence/operations/cross/VAL-CROSS-013.log",
+        "exitCode": 0,
+        "observedPassingLines": [
+          "test db::tests::cross_history_persists_across_reopen ... ok"
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Initial attempt used `-- --exact` with short test names, which filtered out all tests; reran without `--exact` to gather direct passing lines.",
+      "resolved": true,
+      "resolution": "Executed assertion-scoped cargo tests without `--exact`, producing one clear passing test line per assertion.",
+      "affectedAssertions": [
+        "VAL-CROSS-001",
+        "VAL-CROSS-002",
+        "VAL-CROSS-003",
+        "VAL-CROSS-004",
+        "VAL-CROSS-005",
+        "VAL-CROSS-006",
+        "VAL-CROSS-007",
+        "VAL-CROSS-008",
+        "VAL-CROSS-009",
+        "VAL-CROSS-010",
+        "VAL-CROSS-011",
+        "VAL-CROSS-012",
+        "VAL-CROSS-013"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 13 assertions: 13 passed, 0 failed, 0 blocked."
+}

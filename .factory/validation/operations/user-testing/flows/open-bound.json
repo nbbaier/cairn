@@ -1,0 +1,246 @@
+{
+  "groupId": "open-bound",
+  "testedAt": "2026-04-09T21:08:47Z",
+  "isolation": {
+    "surface": "cargo-test-cli",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-ops-open-bound"
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-OPEN-001",
+      "title": "Open file-backed database creates file and is usable",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-001",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::open_file_creates_and_usable ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_file_creates_and_usable -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-001.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_file_creates_and_usable ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OPEN-002",
+      "title": "Open in-memory database succeeds",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-002",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::open_in_memory_returns_ok ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_in_memory_returns_ok -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-002.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_in_memory_returns_ok ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OPEN-003",
+      "title": "WAL journal mode active after open",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-003",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::open_wal_mode ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_wal_mode -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-003.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_wal_mode ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OPEN-004",
+      "title": "Database handle is Send + Sync",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-004",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::open_send_sync ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_send_sync -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-004.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_send_sync ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-OPEN-005",
+      "title": "Invalid path returns Error::InvalidPath",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-005",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; passing line 'test db::tests::open_invalid_path_returns_error ... ok'. Contract-specific variant evidence missing."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_invalid_path_returns_error -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-005.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_invalid_path_returns_error ... ok"
+      },
+      "issues": "Passing test exists, but evidence is not direct for contract criterion: test only asserts is_err() and does not match Error::InvalidPath variant."
+    },
+    {
+      "id": "VAL-OPEN-006",
+      "title": "Re-opening existing database preserves data",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-OPEN-006",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::open_reopen_preserves_data ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_reopen_preserves_data -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-OPEN-006.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::open_reopen_preserves_data ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-001",
+      "title": "Insert empty JSON object succeeds",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-001",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_insert_empty_object_succeeds ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_insert_empty_object_succeeds -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-001.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_insert_empty_object_succeeds ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-002",
+      "title": "Insert non-object JSON is rejected",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-002",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_insert_non_object_returns_error ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_insert_non_object_returns_error -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-002.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_insert_non_object_returns_error ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-003",
+      "title": "Update with empty patch leaves data unchanged",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-003",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_update_empty_patch ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_update_empty_patch -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-003.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_update_empty_patch ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-004",
+      "title": "query_at at exact insert timestamp is inclusive",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-004",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_query_at_exact_timestamp_inclusive ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_query_at_exact_timestamp_inclusive -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-004.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_query_at_exact_timestamp_inclusive ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-006",
+      "title": "Delete from table with no matching document returns DocumentNotFound",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-006",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_delete_no_matching_doc ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_delete_no_matching_doc -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-006.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_delete_no_matching_doc ... ok"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-BOUND-007",
+      "title": "query after all documents deleted returns empty (not TableNotFound)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-BOUND-007",
+          "expected": "Command exits 0 and targeted test line ends with ok",
+          "observed": "Exit code 0; observed passing line 'test db::tests::db_query_after_all_deleted_returns_empty ... ok'."
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-open-bound cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db_query_after_all_deleted_returns_empty -- --nocapture",
+        "log": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d/evidence/operations/open-bound/VAL-BOUND-007.log",
+        "exitCode": 0,
+        "passingLine": "test db::tests::db_query_after_all_deleted_returns_empty ... ok"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 12 assertions: 11 passed, 1 failed, 0 blocked."
+}

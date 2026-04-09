@@ -1,0 +1,306 @@
+{
+  "groupId": "insert-update",
+  "testedAt": "2026-04-09T21:08:21.073026+00:00",
+  "isolation": {
+    "surface": "cargo-test-cli",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-ops-insert-update"
+  },
+  "toolsUsed": [
+    "cargo test"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-INS-001",
+      "title": "Insert returns Document with valid UUIDv7",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-001",
+          "expected": "Test db::tests::db_insert_returns_uuidv7_id passes and prints an ok line",
+          "observed": "test db::tests::db_insert_returns_uuidv7_id ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_returns_uuidv7_id -- --exact",
+        "log": "operations/insert-update/VAL-INS-001.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-002",
+      "title": "Returned document data matches input",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-002",
+          "expected": "Test db::tests::db_insert_data_matches_input passes and prints an ok line",
+          "observed": "test db::tests::db_insert_data_matches_input ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_data_matches_input -- --exact",
+        "log": "operations/insert-update/VAL-INS-002.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-003",
+      "title": "Returned document has system_time",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-003",
+          "expected": "Test db::tests::db_insert_has_system_time passes and prints an ok line",
+          "observed": "test db::tests::db_insert_has_system_time ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_has_system_time -- --exact",
+        "log": "operations/insert-update/VAL-INS-003.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-004",
+      "title": "Returned document has txn_id",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-004",
+          "expected": "Test db::tests::db_insert_has_txn_id passes and prints an ok line",
+          "observed": "test db::tests::db_insert_has_txn_id ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_has_txn_id -- --exact",
+        "log": "operations/insert-update/VAL-INS-004.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-005",
+      "title": "Table auto-created on first insert",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-005",
+          "expected": "Test db::tests::db_insert_auto_creates_table passes and prints an ok line",
+          "observed": "test db::tests::db_insert_auto_creates_table ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_auto_creates_table -- --exact",
+        "log": "operations/insert-update/VAL-INS-005.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-006",
+      "title": "Multiple inserts produce distinct IDs",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-006",
+          "expected": "Test db::tests::db_insert_distinct_ids passes and prints an ok line",
+          "observed": "test db::tests::db_insert_distinct_ids ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_distinct_ids -- --exact",
+        "log": "operations/insert-update/VAL-INS-006.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-007",
+      "title": "UUIDv7 IDs are time-sortable",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-007",
+          "expected": "Test db::tests::db_insert_uuidv7_time_sortable passes and prints an ok line",
+          "observed": "test db::tests::db_insert_uuidv7_time_sortable ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_uuidv7_time_sortable -- --exact",
+        "log": "operations/insert-update/VAL-INS-007.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-INS-008",
+      "title": "Inserted document immediately queryable",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-INS-008",
+          "expected": "Test db::tests::db_insert_immediately_queryable passes and prints an ok line",
+          "observed": "test db::tests::db_insert_immediately_queryable ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_insert_immediately_queryable -- --exact",
+        "log": "operations/insert-update/VAL-INS-008.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-001",
+      "title": "Update patches _data field",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-001",
+          "expected": "Test db::tests::db_update_patches_data passes and prints an ok line",
+          "observed": "test db::tests::db_update_patches_data ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_update_patches_data -- --exact",
+        "log": "operations/insert-update/VAL-UPD-001.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-002",
+      "title": "Updated document has new system_time and txn_id",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-002",
+          "expected": "Test db::tests::db_update_new_metadata passes and prints an ok line",
+          "observed": "test db::tests::db_update_new_metadata ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_update_new_metadata -- --exact",
+        "log": "operations/insert-update/VAL-UPD-002.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-003",
+      "title": "Original version preserved in history",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-003",
+          "expected": "Test db::tests::db_update_preserves_history passes and prints an ok line",
+          "observed": "test db::tests::db_update_preserves_history ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_update_preserves_history -- --exact",
+        "log": "operations/insert-update/VAL-UPD-003.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-004",
+      "title": "History record has _op and _valid_to",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-004",
+          "expected": "Test storage::tests::update_history_has_correct_op_and_valid_to passes and prints an ok line",
+          "observed": "test storage::tests::update_history_has_correct_op_and_valid_to ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core storage::tests::update_history_has_correct_op_and_valid_to -- --exact",
+        "log": "operations/insert-update/VAL-UPD-004.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-005",
+      "title": "Update non-existent document returns error",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-005",
+          "expected": "Test db::tests::db_update_nonexistent_returns_error passes and prints an ok line",
+          "observed": "test db::tests::db_update_nonexistent_returns_error ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_update_nonexistent_returns_error -- --exact",
+        "log": "operations/insert-update/VAL-UPD-005.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-006",
+      "title": "Multiple updates create multiple history entries",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-006",
+          "expected": "Test db::tests::db_multiple_updates_multiple_history passes and prints an ok line",
+          "observed": "test db::tests::db_multiple_updates_multiple_history ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_multiple_updates_multiple_history -- --exact",
+        "log": "operations/insert-update/VAL-UPD-006.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-007",
+      "title": "Partial patch preserves existing keys",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-007",
+          "expected": "Test db::tests::db_partial_patch_preserves_keys passes and prints an ok line",
+          "observed": "test db::tests::db_partial_patch_preserves_keys ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_partial_patch_preserves_keys -- --exact",
+        "log": "operations/insert-update/VAL-UPD-007.log",
+        "exitCode": 0
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-UPD-008",
+      "title": "json_patch null removes key (RFC 7396)",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for VAL-UPD-008",
+          "expected": "Test db::tests::db_patch_null_removes_key passes and prints an ok line",
+          "observed": "test db::tests::db_patch_null_removes_key ... ok"
+        }
+      ],
+      "evidence": {
+        "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-ops-insert-update cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core db::tests::db_patch_null_removes_key -- --exact",
+        "log": "operations/insert-update/VAL-UPD-008.log",
+        "exitCode": 0
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 16 assertions: 16 passed, 0 failed, 0 blocked, 0 skipped."
+}
