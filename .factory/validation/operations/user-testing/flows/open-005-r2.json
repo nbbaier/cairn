@@ -1,0 +1,74 @@
+{
+  "groupId": "open-005-r2",
+  "testedAt": "2026-04-09T21:17:51Z",
+  "isolation": {
+    "surface": "cargo-test-cli",
+    "repoRoot": "/Users/nbbaier/Code/cairn",
+    "missionDir": "/Users/nbbaier/.factory/missions/a6843fe7-f988-4ceb-8688-b6ccd0fc2d2d",
+    "cargoTargetDir": "/tmp/cairn-user-testing-open-005-r2"
+  },
+  "toolsUsed": [
+    "cargo test",
+    "rg"
+  ],
+  "assertionResults": [
+    {
+      "id": "VAL-OPEN-005",
+      "title": "Invalid path returns Error::InvalidPath",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Run targeted cargo test for open_invalid_path_returns_error",
+          "expected": "Targeted test executes and passes",
+          "observed": "Observed passing line: 'test db::tests::open_invalid_path_returns_error ... ok' with exit code 0."
+        },
+        {
+          "action": "Confirm test assertion matches Error::InvalidPath variant",
+          "expected": "Source assertion explicitly matches Err(Error::InvalidPath(_))",
+          "observed": "Observed source line: 'matches!(result, Err(Error::InvalidPath(_)))'."
+        }
+      ],
+      "evidence": {
+        "logs": [
+          "operations/open-005-r2/VAL-OPEN-005-targeted-cargo-test-pass.log",
+          "operations/open-005-r2/VAL-OPEN-005-variant-match-source.log"
+        ],
+        "passingLine": "test db::tests::open_invalid_path_returns_error ... ok",
+        "variantMatchLine": "matches!(result, Err(Error::InvalidPath(_)))"
+      },
+      "issues": null
+    }
+  ],
+  "commandsRun": [
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-open-005-r2 cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_invalid_path_returns_error -- --exact --nocapture",
+      "exitCode": 0,
+      "observation": "Command succeeded but filtered out all tests (0 run) due exact-name mismatch.",
+      "evidenceLog": "operations/open-005-r2/VAL-OPEN-005-targeted-cargo-test.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/cairn-user-testing-open-005-r2 cargo test --manifest-path /Users/nbbaier/Code/cairn/Cargo.toml --package cairndb-core open_invalid_path_returns_error -- --nocapture",
+      "exitCode": 0,
+      "observation": "Targeted test executed and passed (1 passed, 0 failed).",
+      "evidenceLog": "operations/open-005-r2/VAL-OPEN-005-targeted-cargo-test-pass.log"
+    },
+    {
+      "command": "rg -n \"open_invalid_path_returns_error|matches!\\(result, Err\\(Error::InvalidPath\\(_\\)\\)\" /Users/nbbaier/Code/cairn/cairndb-core/src/db.rs",
+      "exitCode": 0,
+      "observation": "Confirmed explicit variant-match assertion in test source.",
+      "evidenceLog": "operations/open-005-r2/VAL-OPEN-005-variant-match-source.log"
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Using '--exact' with bare pattern ran 0 tests; reran without '--exact' to execute the intended test.",
+      "resolved": true,
+      "resolution": "Retried with non-exact filter so db::tests::open_invalid_path_returns_error ran.",
+      "affectedAssertions": [
+        "VAL-OPEN-005"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "VAL-OPEN-005 passed on rerun: targeted test passed and source assertion explicitly matches Error::InvalidPath variant."
+}
