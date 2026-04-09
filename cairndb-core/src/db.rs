@@ -119,9 +119,8 @@ impl Database {
 
     /// Returns every version of every document in `table` (history UNION ALL current).
     ///
-    /// History rows have `_op` (e.g. `"UPDATE"` or `"DELETE"`) and `_valid_to`
-    /// (epoch-ms integer) metadata injected into their data map.
-    /// Current rows have no `_op` or `_valid_to` metadata.
+    /// History rows expose `op()` and `valid_to()` via dedicated [`Document`]
+    /// accessors.  Current rows return `None` for both.
     ///
     /// Returns `Error::TableNotFound` if the table doesn't exist.
     pub fn query_all(&self, table: &str) -> Result<QueryResult> {
@@ -769,7 +768,7 @@ mod tests {
         let ops: Vec<String> = all
             .documents()
             .iter()
-            .filter_map(|d| d.get("_op").and_then(|v| v.as_str()).map(String::from))
+            .filter_map(|d| d.op().map(String::from))
             .collect();
         assert!(ops.contains(&"UPDATE".to_string()), "_op=UPDATE must be present");
         assert!(ops.contains(&"DELETE".to_string()), "_op=DELETE must be present");
@@ -1292,7 +1291,7 @@ mod tests {
         let ops: Vec<String> = all
             .documents()
             .iter()
-            .filter_map(|d| d.get("_op").and_then(|v| v.as_str()).map(String::from))
+            .filter_map(|d| d.op().map(String::from))
             .collect();
         assert!(ops.contains(&"UPDATE".to_string()));
         assert!(ops.contains(&"DELETE".to_string()));

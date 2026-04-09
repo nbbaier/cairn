@@ -12,6 +12,10 @@ pub struct Document {
     data: Map<String, Value>,
     valid_from: i64,
     txn_id: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    op: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    valid_to: Option<i64>,
 }
 
 impl Document {
@@ -23,6 +27,27 @@ impl Document {
             data,
             valid_from,
             txn_id,
+            op: None,
+            valid_to: None,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn new_history(
+        id: String,
+        data: Map<String, Value>,
+        valid_from: i64,
+        txn_id: i64,
+        op: String,
+        valid_to: i64,
+    ) -> Self {
+        Self {
+            id,
+            data,
+            valid_from,
+            txn_id,
+            op: Some(op),
+            valid_to: Some(valid_to),
         }
     }
 
@@ -53,6 +78,18 @@ impl Document {
     /// document.
     pub fn txn_id(&self) -> i64 {
         self.txn_id
+    }
+
+    /// Returns the operation type for history rows (`"UPDATE"` or `"DELETE"`),
+    /// or `None` for current-state rows.
+    pub fn op(&self) -> Option<&str> {
+        self.op.as_deref()
+    }
+
+    /// Returns the end-of-validity timestamp (epoch ms) for history rows,
+    /// or `None` for current-state rows.
+    pub fn valid_to(&self) -> Option<i64> {
+        self.valid_to
     }
 }
 

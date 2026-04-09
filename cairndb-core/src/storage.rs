@@ -329,9 +329,9 @@ pub(crate) fn query(conn: &Connection, table: &str) -> Result<QueryResult> {
 
 /// Returns every version of every document in `table` (history UNION ALL current).
 ///
-/// History rows have `_op` (e.g. `"UPDATE"` or `"DELETE"`) and `_valid_to`
-/// (epoch-ms integer) injected into their data map as metadata fields.
-/// Current rows have no `_op` or `_valid_to` metadata injected.
+/// History rows expose `op()` (e.g. `"UPDATE"` or `"DELETE"`) and `valid_to()`
+/// (epoch-ms) via dedicated [`Document`] accessors — the user data map is not
+/// modified.  Current rows return `None` for both.
 ///
 /// Returns `Error::TableNotFound` if the table doesn't exist.
 pub(crate) fn query_all(conn: &Connection, table: &str) -> Result<QueryResult> {
@@ -366,13 +366,11 @@ pub(crate) fn query_all(conn: &Connection, table: &str) -> Result<QueryResult> {
 
         for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
             let data_val: Value = serde_json::from_str(&data_str)?;
-            let mut map = match data_val {
+            let map = match data_val {
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            map.insert("_op".to_string(), Value::String(op));
-            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
-            docs.push(Document::new(id, map, valid_from, txn_id));
+            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
         }
     }
 
@@ -424,13 +422,11 @@ pub(crate) fn query_at(conn: &Connection, table: &str, timestamp_iso: &str) -> R
 
         for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
             let data_val: Value = serde_json::from_str(&data_str)?;
-            let mut map = match data_val {
+            let map = match data_val {
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            map.insert("_op".to_string(), Value::String(op));
-            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
-            docs.push(Document::new(id, map, valid_from, txn_id));
+            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
         }
     }
 
@@ -518,13 +514,11 @@ pub(crate) fn query_between(
 
         for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
             let data_val: Value = serde_json::from_str(&data_str)?;
-            let mut map = match data_val {
+            let map = match data_val {
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            map.insert("_op".to_string(), Value::String(op));
-            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
-            docs.push(Document::new(id, map, valid_from, txn_id));
+            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
         }
     }
 
@@ -1418,7 +1412,7 @@ mod tests {
         let ops: Vec<String> = qr
             .documents()
             .iter()
-            .filter_map(|d| d.get("_op").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .filter_map(|d| d.op().map(|s| s.to_string()))
             .collect();
         assert!(ops.contains(&"UPDATE".to_string()), "_op=UPDATE should be present");
         assert!(ops.contains(&"DELETE".to_string()), "_op=DELETE should be present");
