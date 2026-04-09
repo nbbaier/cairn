@@ -16,6 +16,14 @@ pub struct Database {
 impl Database {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
+
+        // Validate: parent directory must exist (for paths with a parent component)
+        if let Some(parent) = path.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                return Err(Error::InvalidPath(format!("{}", path.display())));
+            }
+        }
+
         let path_str = path.to_str().ok_or_else(|| {
             Error::InvalidPath(format!("{}", path.display()))
         })?;
@@ -1224,9 +1232,12 @@ mod tests {
     /// VAL-OPEN-005: Invalid path returns Error::InvalidPath
     #[test]
     fn open_invalid_path_returns_error() {
-        // A path with a non-existent intermediate directory should fail
+        // A path with a non-existent intermediate directory should fail with Error::InvalidPath
         let result = Database::open("/nonexistent_dir_xyz/test.db");
-        assert!(result.is_err(), "should fail for non-existent directory");
+        assert!(
+            matches!(result, Err(Error::InvalidPath(_))),
+            "should return Error::InvalidPath for non-existent directory"
+        );
     }
 
     /// VAL-OPEN-006: Re-opening existing database preserves data
