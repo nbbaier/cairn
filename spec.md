@@ -1,14 +1,18 @@
-# Cairn: An Embedded Temporal Document Database on Turso
+# Cairn: An Embedded Temporal Document Database
 
-Exploratory Spec — April 2026
+Spec — April 2026
 
 ## Premise
 
 [Endatabas](https://www.endatabas.com/) is a SQL document database with complete history, immutable storage, time-travel queries, and schema-flexible documents stored in Apache Arrow columnar format. Its core ideas are compelling, but it requires running a server, which is at odds with the use cases where its features would be most valuable: personal data stores, local-first apps, developer tools, PKM systems, edge applications.
 
-This document explores what it would look like to build an embedded equivalent — something that is to Endatabas what SQLite is to Postgres. The proposed foundation is Turso (the Rust-based SQLite-compatible database), extended with temporal SQL semantics, automatic versioning via CDC, and a schema-flexible document model.
+This document describes an embedded equivalent — something that is to Endatabas what SQLite is to Postgres. The foundation is vanilla SQLite (via `rusqlite` with bundled), extended with temporal SQL semantics, automatic versioning via BEFORE triggers, and a schema-flexible document model. The long-term target SQL dialect is [Endb SQL](https://docs.endatabas.com/sql/), implemented incrementally. Migration to Turso is a future option when its CDC and MVCC features stabilize.
 
-The working name for this project is **cairn** (placeholder).
+The project name is **cairndb**.
+
+Related documents: 
+- [decisions.md](decisions.md): design decisions with rationale
+- [roadmap.md](roadmap.md): milestones, scope, and Endb SQL compatibility matrix
 
 
 
@@ -24,7 +28,9 @@ The working name for this project is **cairn** (placeholder).
 
 5. **Time-travel is a first-class query primitive.** `FOR SYSTEM_TIME AS OF`, `BETWEEN`, `ALL`, and SQL:2011 period predicates are part of the SQL dialect, not bolted on via application-level workarounds.
 
-6. **Row-oriented storage is enough.** Columnar storage is theoretically desirable for analytical queries over historical data, but no viable embedded columnar option exists today. Row-oriented Turso/SQLite tables with proper indexing are the storage model. Columnar is a future optimization, not a design dependency.
+6. **Row-oriented storage is enough.** Columnar storage is theoretically desirable for analytical queries over historical data, but no viable embedded columnar option exists today. Row-oriented SQLite tables with proper indexing are the storage model. Columnar is a future optimization, not a design dependency.
+
+7. **Endb SQL compatibility.** The long-term target dialect is the [Endatabas SQL reference](https://docs.endatabas.com/sql/). This covers data manipulation, queries, temporal queries, document literals, path navigation, schema introspection, views, and assertions. Feature parity is reached incrementally — each milestone adds a slice of the dialect.
 
 
 
@@ -38,41 +44,41 @@ The working name for this project is **cairn** (placeholder).
                        │
                        ▼
 ┌─────────────────────────────────────────────────────┐
-│               Temporal SQL Parser                   │
+│          Temporal SQL Parser (cairndb-parser)        │
 │                                                     │
-│  Extended SQL dialect:                              │
-│  - FOR SYSTEM_TIME {AS OF | BETWEEN | ALL | FROM}   │
-│  - Document literals: {key: value, ...}             │
-│  - Path navigation: column..nested_key              │
-│  - Period predicates: CONTAINS, OVERLAPS, etc.      │
-│  - ERASE statement                                  │
+│  Hybrid parsing strategy:                           │
+│  - Custom parser: INSERT (col/val + doc literal),   │
+│    ERASE                                            │
+│  - sqlparser-rs: SELECT, UPDATE, DELETE,            │
+│    CREATE TABLE                                     │
+│  - Pre-processing: strip FOR SYSTEM_TIME before     │
+│    passing SELECT to sqlparser-rs                   │
 │                                                     │
-│  Fork of Turso's parser crate                       │
+│  Output: Statement IR (not raw SQL)                 │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────┐
-│              Query Compiler / Rewriter              │
+│           SQL Dispatch (cairndb facade)             │
 │                                                     │
-│  Compiles temporal SQL → standard SQL against       │
-│  the versioned storage schema.                      │
+│  Database::sql() maps Statement IR to               │
+│  cairndb-core Rust API calls:                       │
 │                                                     │
-│  - AS OF → WHERE _valid_from <= ? AND _valid_to > ? │
-│  - Document paths → json_extract() calls            │
-│  - Schema-last INSERTs → JSONB column writes        │
-│  - Period predicates → range comparisons            │
+│  - Insert → db.insert(table, data)                  │
+│  - Select + AsOf → db.query_at(table, ts)           │
+│  - Select + All → db.query_all(table)               │
+│  - Update → db.update(table, id, patch)             │
+│  - Delete → db.delete(table, id)                    │
+│  - Erase → db.erase(table, id)                      │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────┐
-│                  Turso Engine                       │
+│          Storage Layer (cairndb-core)               │
 │                                                     │
-│  - SQLite-compatible storage (single file)          │
-│  - CDC stream for automatic version capture         │
-│  - MVCC (BEGIN CONCURRENT) for concurrent access    │
-│  - Async I/O (io_uring on Linux)                    │
-│  - Encryption at rest (optional)                    │
-│  - WASM compilation target                          │
+│  - Vanilla SQLite via rusqlite (bundled)            │
+│  - BEFORE triggers for automatic versioning         │
+│  - Mutex<Connection>, Send + Sync, WAL mode         │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
@@ -102,10 +108,10 @@ Each logical table `T` has a corresponding physical table `_T_current` that hold
 ```sql
 -- Physical schema for a logical table "events"
 CREATE TABLE _events_current (
-    _id          TEXT PRIMARY KEY,   -- system-assigned document ID
-    _data        JSONB NOT NULL,     -- the document itself
-    _valid_from  TEXT NOT NULL,      -- ISO 8601 timestamp (system time start)
-    _txn_id      INTEGER NOT NULL    -- transaction that created this version
+    _id        TEXT    PRIMARY KEY,  -- UUIDv7, system-assigned
+    _data      JSONB   NOT NULL,    -- the document itself
+    _valid_from INTEGER NOT NULL,   -- epoch milliseconds (system time start)
+    _txn_id    INTEGER NOT NULL     -- transaction that created this version
 );
 ```
 
@@ -115,27 +121,23 @@ Each logical table also has a `_T_history` table that stores all prior versions.
 
 ```sql
 CREATE TABLE _events_history (
-    _id          TEXT NOT NULL,
-    _data        JSONB NOT NULL,
-    _valid_from  TEXT NOT NULL,      -- when this version became active
-    _valid_to    TEXT NOT NULL,      -- when this version was superseded
-    _txn_id      INTEGER NOT NULL,
-    _op          TEXT NOT NULL       -- 'INSERT', 'UPDATE', 'DELETE'
+    _id        TEXT    NOT NULL,
+    _data      JSONB   NOT NULL,
+    _valid_from INTEGER NOT NULL,   -- epoch ms: when this version became active
+    _valid_to  INTEGER NOT NULL,    -- epoch ms: when this version was superseded
+    _txn_id    INTEGER NOT NULL,
+    _op        TEXT    NOT NULL     -- 'UPDATE', 'DELETE'
 );
 
-CREATE INDEX _events_history_time
+CREATE INDEX _events_history_idx
     ON _events_history (_id, _valid_from, _valid_to);
 ```
 
-### Why CDC matters here
+### Versioning via BEFORE triggers
 
-Rather than using SQLite triggers (fragile, hard to maintain, no access to transaction context), cairn would use Turso's CDC stream to populate history tables. When a write hits `_events_current`:
+**Implemented.** SQLite BEFORE UPDATE and BEFORE DELETE triggers on `_T_current` capture before-images into `_T_history`. The triggers read `(txn_id, timestamp)` from the `_cairn_tx_context` system table, which the Rust layer populates at the start of each write transaction and clears after commit.
 
-1. The CDC listener captures the before-image of the affected row(s).
-2. The before-image is appended to `_events_history` with `_valid_to` set to the current transaction timestamp.
-3. The new row in `_events_current` gets `_valid_from` set to the current transaction timestamp.
-
-This keeps the versioning logic out of user-space triggers and inside the engine, where it belongs.
+This approach was chosen over Turso CDC (the original plan) because v0.1 targets vanilla SQLite. The trigger-based mechanism is atomic (runs inside the same transaction as the mutation) and cairndb owns the physical schema entirely, avoiding the fragility concern with user-controlled triggers. When migrating to Turso CDC, the triggers are dropped — the history table schema stays identical.
 
 ### Transaction log
 
@@ -143,9 +145,9 @@ A global transaction metadata table tracks transaction boundaries for consistent
 
 ```sql
 CREATE TABLE _transactions (
-    _txn_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    _timestamp   TEXT NOT NULL,      -- wall-clock time of commit
-    _metadata    JSONB               -- optional: user-supplied context
+    txn_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp INTEGER NOT NULL,     -- epoch milliseconds
+    metadata  TEXT                   -- optional: user-supplied context
 );
 ```
 
@@ -177,30 +179,20 @@ CREATE TABLE _schema_registry (
 
 ### Document literals in SQL
 
-Following Endatabas, cairn's parser would support document literal syntax:
+Following Endatabas, cairndb supports document literal syntax for INSERT (v0.1):
 
 ```sql
 -- Endatabas-style document INSERT
 INSERT INTO stores {
-    brand: "Alonzo's Analog Synthesizers",
+    brand: 'Alonzo Analog Synthesizers',
     addresses: [
-        {city: "New Jersey", country: "United States", opened: 1929-09-01},
-        {city: "Göttingen", country: "Germany", opened: 1928-09-01}
+        {city: 'New Jersey', country: 'United States'},
+        {city: 'Göttingen', country: 'Germany'}
     ]
 };
 ```
 
-The parser compiles this to:
-
-```sql
-INSERT INTO _stores_current (_id, _data, _valid_from, _txn_id)
-VALUES (
-    'uuid-...',
-    jsonb('{"brand":"Alonzo''s Analog Synthesizers","addresses":[...]}'),
-    '2026-04-04T12:00:00Z',
-    123
-);
-```
+The parser compiles this to an `Insert` IR node with `data` as a `serde_json::Map`, which the facade dispatches to `db.insert("stores", data)`. Supported value types in v0.1: strings (single-quoted), integers, floats, booleans, null, nested objects, arrays. Bare date/time literals are deferred.
 
 ### Path navigation
 
@@ -221,76 +213,47 @@ SQLite's JSON support doesn't have recursive descent natively, so the compiler w
 
 
 
-## Temporal Query Compilation
+## Temporal Query Dispatch
 
-The core of the system is the query compiler that rewrites temporal SQL into standard SQL against the versioned storage schema.
+In v0.1, temporal queries are dispatched via the Statement IR to the existing `cairndb-core` Rust API. The core layer handles the underlying SQL (history/current UNION queries, timestamp comparisons, etc.) internally.
 
 ### AS OF (time travel)
 
 ```sql
--- User writes:
-SELECT * FROM events FOR SYSTEM_TIME AS OF '2025-06-15T00:00:00Z';
-
--- Compiler emits:
-SELECT _id, _data FROM _events_history
-WHERE _valid_from <= '2025-06-15T00:00:00Z'
-  AND _valid_to > '2025-06-15T00:00:00Z'
-UNION ALL
-SELECT _id, _data FROM _events_current
-WHERE _valid_from <= '2025-06-15T00:00:00Z';
+SELECT * FROM events FOR SYSTEM_TIME AS OF '2025-06-15T00:00:00.000Z';
+-- Parser produces: Select { table: "events", temporal: Some(AsOf("2025-06-15T00:00:00.000Z")) }
+-- Facade calls: db.query_at("events", "2025-06-15T00:00:00.000Z")
 ```
-
-The UNION is necessary because rows that are still current won't appear in the history table.
 
 ### ALL (full history)
 
 ```sql
--- User writes:
 SELECT * FROM events FOR SYSTEM_TIME ALL;
-
--- Compiler emits:
-SELECT _id, _data, _valid_from, _valid_to FROM _events_history
-UNION ALL
-SELECT _id, _data, _valid_from, NULL FROM _events_current;
+-- Parser produces: Select { table: "events", temporal: Some(All) }
+-- Facade calls: db.query_all("events")
 ```
 
 ### BETWEEN
 
 ```sql
--- User writes:
-SELECT * FROM events
-    FOR SYSTEM_TIME BETWEEN '2025-01-01' AND '2025-12-31';
-
--- Compiler emits:
-SELECT _id, _data FROM _events_history
-WHERE _valid_from <= '2025-12-31T23:59:59Z'
-  AND _valid_to > '2025-01-01T00:00:00Z'
-UNION ALL
-SELECT _id, _data FROM _events_current
-WHERE _valid_from <= '2025-12-31T23:59:59Z';
-```
-
-### Period predicates
-
-SQL:2011 period predicates compile to range comparisons:
-
-```sql
--- CONTAINS: period A contains period B
--- A.start <= B.start AND A.end >= B.end
-
--- OVERLAPS: any overlap between A and B
--- A.start < B.end AND A.end > B.start
-
--- PRECEDES: A ends before B starts
--- A.end <= B.start
-
--- IMMEDIATELY PRECEDES: A ends exactly when B starts
--- A.end = B.start
+SELECT * FROM events FOR SYSTEM_TIME BETWEEN '2025-01-01T00:00:00.000Z' AND '2025-12-31T00:00:00.000Z';
+-- Parser produces: Select { table: "events", temporal: Some(Between { from: ..., to: ... }) }
+-- Facade calls: db.query_between("events", from, to)
 ```
 
 ### Default behavior (no temporal qualifier)
 
-Queries without `FOR SYSTEM_TIME` read only from `_T_current`. This is the fast path — no history scan, no UNION, just a normal indexed read against the current-state table. This matches Endatabas's design: "queries default to as-of-now, which is the thing you want 97% of the time."
+```sql
+SELECT * FROM events;
+-- Parser produces: Select { table: "events", temporal: None }
+-- Facade calls: db.query("events")
+```
+
+Queries without `FOR SYSTEM_TIME` read only from `_T_current`. This is the fast path — no history scan, no UNION, just a normal indexed read. This matches Endatabas's design: "queries default to as-of-now, which is the thing you want 97% of the time."
+
+### Period predicates (v0.2+)
+
+SQL:2011 period predicates (`CONTAINS`, `OVERLAPS`, `PRECEDES`, `SUCCEEDS`, `IMMEDIATELY PRECEDES`, `IMMEDIATELY SUCCEEDS`) are deferred to v0.2+. They follow the closed-open period model as documented in [Endb's Time Queries](https://docs.endatabas.com/sql/time_queries).
 
 
 
@@ -320,17 +283,19 @@ In cairn, `UPDATE` and `DELETE` are non-destructive by default. They create new 
 
 ```sql
 -- User writes:
-UPDATE events SET {status: "completed"} WHERE _id = 'evt-1';
+UPDATE events SET status = 'completed' WHERE _id = 'evt-1';
 
 -- What actually happens:
--- 1. CDC captures the current row as a before-image → _events_history
--- 2. The _data column in _events_current is patched:
+-- 1. BEFORE UPDATE trigger copies the old row to _events_history with _op='UPDATE'
+-- 2. The _data column in _events_current is patched via json_patch (RFC 7396):
 UPDATE _events_current
-SET _data = json_patch(_data, '{"status":"completed"}'),
-    _valid_from = '2026-04-04T12:00:00Z',
-    _txn_id = 124
+SET _data = json_patch(_data, jsonb('{"status":"completed"}')),
+    _valid_from = <epoch_ms>,
+    _txn_id = <txn_id>
 WHERE _id = 'evt-1';
 ```
+
+The parser collects SET assignments (`status = 'completed'`) and assembles them into a JSON merge patch object. Multiple assignments are supported: `SET a = 1, b = 2` becomes `{"a": 1, "b": 2}`.
 
 ### DELETE
 
@@ -339,7 +304,7 @@ WHERE _id = 'evt-1';
 DELETE FROM events WHERE _id = 'evt-1';
 
 -- What actually happens:
--- 1. CDC captures the current row → _events_history with _op = 'DELETE'
+-- 1. BEFORE DELETE trigger copies the old row to _events_history with _op='DELETE'
 -- 2. The row is removed from _events_current
 DELETE FROM _events_current WHERE _id = 'evt-1';
 -- The row is NOT gone — it still exists in _events_history
@@ -357,9 +322,9 @@ Historical data in a temporal database tends to be read-heavy and append-only �
 
 The only existing SQLite columnar extension is Stanchion — a Zig-based project that launched in early 2024 and has seen no activity since. It's alpha, lacks DELETE support, is written in a different language than Turso, and is effectively abandoned. It is not a viable dependency.
 
-Building a Rust-native columnar virtual table (using `arrow-rs` and Turso's virtual table interface) would be the right long-term approach, but it's a project unto itself — months of work for an optimization that may not matter at the scales where an embedded temporal database is useful.
+Building a Rust-native columnar virtual table (using `arrow-rs` and SQLite's virtual table interface) would be the right long-term approach, but it's a project unto itself — months of work for an optimization that may not matter at the scales where an embedded temporal database is useful.
 
-The realistic use cases for this project — personal data stores, local-first apps, developer tools, PKM systems — involve datasets in the thousands to low millions of rows. Row-oriented SQLite/Turso B-tree tables with proper indexes on `(_id, _valid_from, _valid_to)` will handle this fine. If someone needs to scan billions of historical rows, they should be using DuckDB or ClickHouse, not an embedded temporal store.
+The realistic use cases for this project — personal data stores, local-first apps, developer tools, PKM systems — involve datasets in the thousands to low millions of rows. Row-oriented SQLite B-tree tables with proper indexes on `(_id, _valid_from, _valid_to)` will handle this fine. If someone needs to scan billions of historical rows, they should be using DuckDB or ClickHouse, not an embedded temporal store.
 
 ### Future options if it becomes necessary
 
@@ -373,166 +338,125 @@ If analytical performance over large history tables becomes a real bottleneck (n
 
 ## Parser Implementation
 
-### Approach: fork Turso's parser
+### Approach: hybrid custom + sqlparser-rs
 
-Turso has a `parser/` crate in its repo. Forking this crate and extending it is the most direct path. The extensions needed:
+The parser (`cairndb-parser` crate) uses a hybrid strategy:
 
-1. **`FOR SYSTEM_TIME` clause** on `SELECT` statements, supporting `AS OF <expr>`, `BETWEEN <expr> AND <expr>`, `FROM <expr> TO <expr>`, and `ALL`.
+- **Custom hand-written parsers** for statements that `sqlparser-rs` cannot handle: INSERT (both column/value and document literal `{key: val}` forms) and ERASE (non-standard statement).
+- **`sqlparser-rs`** (as a dependency, not a fork) for standard SQL: UPDATE, DELETE, CREATE TABLE. It handles the full SQLite dialect.
+- **Pre-processing** for SELECT: the `FOR SYSTEM_TIME` clause is stripped from the SQL string before passing to `sqlparser-rs`. The temporal clause is parsed separately and attached to the IR.
 
-2. **Document literal syntax** — `{key: value, ...}` as an expression type, and `[...]` for arrays within documents. This requires new token types and expression grammar rules.
+Dispatch order: try custom parsers first (INSERT, ERASE), fall back to `sqlparser-rs` for everything else.
 
-3. **`ERASE` statement** — a new top-level statement type, syntactically similar to `DELETE` but with different semantics.
+### v0.1 statement set
 
-4. **Path navigation operator** — `..` for recursive descent into nested document fields.
+| Statement | Parser | Maps to |
+|---|---|---|
+| `INSERT INTO t (cols) VALUES (vals)` | Custom | `db.insert(t, data)` |
+| `INSERT INTO t {key: val, ...}` | Custom | `db.insert(t, data)` |
+| `SELECT * FROM t` | sqlparser-rs | `db.query(t)` |
+| `SELECT * FROM t WHERE _id = ?` | sqlparser-rs | `db.get(t, id)` |
+| `SELECT * FROM t FOR SYSTEM_TIME AS OF ts` | Pre-process + sqlparser-rs | `db.query_at(t, ts)` |
+| `SELECT * FROM t FOR SYSTEM_TIME BETWEEN t1 AND t2` | Pre-process + sqlparser-rs | `db.query_between(t, t1, t2)` |
+| `SELECT * FROM t FOR SYSTEM_TIME ALL` | Pre-process + sqlparser-rs | `db.query_all(t)` |
+| `UPDATE t SET col=val,... WHERE _id = ?` | sqlparser-rs | `db.update(t, id, patch)` |
+| `DELETE FROM t WHERE _id = ?` | sqlparser-rs | `db.delete(t, id)` |
+| `ERASE FROM t WHERE _id = ?` | Custom | `db.erase(t, id)` |
+| `CREATE TABLE t` | sqlparser-rs | `db.create_table(t)` |
 
-5. **Period predicate operators** — `CONTAINS`, `OVERLAPS`, `PRECEDES`, `SUCCEEDS`, `IMMEDIATELY PRECEDES`, `IMMEDIATELY SUCCEEDS` as infix operators on period expressions.
+All mutations are ID-addressed only (`WHERE _id = ?`) in v0.1. Arbitrary WHERE clauses are deferred to v0.2+.
 
-6. **Bare date/time literals** — Endatabas supports unquoted `2025-06-15` and `2025-06-15T00:00:00` as date and timestamp literals. This may conflict with SQLite's interpretation of `2025-06-15` as an arithmetic expression (2025 minus 6 minus 15 = 2004). Needs careful grammar design — possibly requiring a `DATE` or `TIMESTAMP` keyword prefix for disambiguation, or using context-sensitive parsing.
+### Document literal syntax
 
-### Compilation target
+The custom INSERT parser supports Endb-style document literals:
 
-The parser produces an AST that the query compiler walks to emit standard Turso-compatible SQL. The compiler is a tree transformation, not a string-manipulation pass. This keeps it robust against injection and edge cases.
+```sql
+INSERT INTO stores {
+    brand: 'Alonzo Analog Synthesizers',
+    addresses: [
+        {city: 'New Jersey', country: 'United States'},
+        {city: 'Göttingen', country: 'Germany'}
+    ]
+};
+```
 
+Supported value types in v0.1: strings (single-quoted), integers, floats, booleans (`true`/`false`), `null`, nested objects, and arrays. Bare date/time literals (unquoted `2024-01-01`) are deferred — users pass dates as quoted strings.
 
+### Compilation target: Statement IR
 
-## Embedding API
-
-### Rust (primary)
+The parser produces a typed intermediate representation (IR), not raw SQL. The `cairndb` facade crate dispatches the IR against `cairndb-core`'s Rust API.
 
 ```rust
-use endb_lite::{Database, QueryResult};
+enum Statement {
+    Insert { table: String, data: Map<String, Value> },
+    Select { table: String, filter: Option<Filter>, temporal: Option<TemporalClause> },
+    Update { table: String, filter: Filter, patch: Map<String, Value> },
+    Delete { table: String, filter: Filter },
+    Erase { table: String, filter: Filter },
+    CreateTable { table: String },
+}
 
-let db = Database::open("mydata.db")?;
+enum Filter {
+    ById(String),   // v0.1: only ID-addressed
+    // Where(Expr),  // v0.2+: arbitrary WHERE clauses
+}
 
-// Schema-last insert — table auto-created
-db.execute(r#"
-    INSERT INTO sensors {
-        device_id: "thermometer-1",
-        reading: 72.4,
-        unit: "fahrenheit",
-        location: {building: "A", floor: 3}
-    }
-"#)?;
-
-// Current-state query (fast path)
-let results: QueryResult = db.query(
-    "SELECT * FROM sensors WHERE device_id = ?",
-    &["thermometer-1"]
-)?;
-
-// Time-travel query
-let historical: QueryResult = db.query(
-    "SELECT * FROM sensors FOR SYSTEM_TIME AS OF ?",
-    &["2025-06-15T00:00:00Z"]
-)?;
-
-// Full history
-let all_versions: QueryResult = db.query(
-    "SELECT *, system_time FROM sensors FOR SYSTEM_TIME ALL",
-    &[]
-)?;
+enum TemporalClause {
+    AsOf(String),
+    Between { from: String, to: String },
+    All,
+}
 ```
 
-### JavaScript / TypeScript (via WASM or native bindings)
+This design keeps `cairndb-parser` independent of `cairndb-core` (zero dependency between them). The `Filter` enum is extensible for v0.2+. Timestamps are raw strings — the core layer validates them.
 
-```typescript
-import { open } from 'cairn';
+### SQL dispatch
 
-const db = await open('mydata.db');
+The `cairndb` facade crate gains a `Database::sql()` method:
 
-await db.execute(`
-    INSERT INTO sensors {
-        device_id: "thermometer-1",
-        reading: 72.4,
-        unit: "fahrenheit"
+```rust
+impl Database {
+    pub fn sql(&self, query: &str) -> Result<QueryResult> {
+        let stmt = cairndb_parser::parse(query)?;
+        match stmt { /* dispatch to core API */ }
     }
-`);
-
-const current = await db.query('SELECT * FROM sensors');
-const historical = await db.query(
-    'SELECT * FROM sensors FOR SYSTEM_TIME AS OF ?',
-    ['2025-06-15T00:00:00Z']
-);
+}
 ```
 
-### Python (via PyO3 or CFFI)
-
-```python
-import endb_lite
-
-db = endb_lite.connect("mydata.db")
-db.execute("""
-    INSERT INTO sensors {
-        device_id: "thermometer-1",
-        reading: 72.4
-    }
-""")
-
-rows = db.query("SELECT * FROM sensors FOR SYSTEM_TIME ALL")
-```
-
-
-
-## Scope and Non-Goals
-
-### In scope (v0.1)
-
-- Temporal SQL parser (FOR SYSTEM_TIME AS OF, BETWEEN, ALL, FROM...TO)
-- Automatic versioning via CDC (history tables, transaction log)
-- Schema-last document storage (JSONB-backed)
-- ERASE for compliance deletion
-- Non-destructive UPDATE and DELETE
-- Period predicates (CONTAINS, OVERLAPS, PRECEDES, SUCCEEDS)
-- Rust library with C API for FFI
-- Single-file database, no server
-
-### In scope (v0.2+)
-
-- Document literal syntax in SQL ({key: value})
-- Path navigation (.. operator)
-- JavaScript/WASM bindings
-- Python bindings
-- Schema registry with type inference
-- Parquet export for history tables (escape hatch to external analytical tools)
-- Bi-temporal support (valid time + system time)
-- History compaction / retention policies
-
-### Non-goals
-
-- Client-server mode (use Turso Cloud or regular Turso for that)
-- Replication / sync (orthogonal problem; could layer on later)
-- Distributed transactions
-- Full HTAP (leave heavy analytics to DuckDB/ClickHouse)
-- Replacing SQLite for general-purpose use (this is a specialized tool)
-- Adaptive indexing (Endatabas's most ambitious planned feature — out of scope)
+This is the only place that depends on both `cairndb-parser` and `cairndb-core`.
 
 
 
 ## Open Questions
 
-1. **CDC granularity.** Does Turso's CDC expose row-level before/after images, or only statement-level change notifications? The former is needed for clean versioning. If CDC doesn't provide before-images, we may need to fall back to a trigger-based approach or a WAL-scanning strategy.
+### Resolved
 
-2. **JSONB performance.** Storing all document data as JSONB means every field access is a json_extract call. For hot-path queries on known fields, this could be slow. Should the engine opportunistically promote frequently-queried JSON keys to real columns (partial materialization)? This is effectively what Endatabas's adaptive indexing does.
+1. ~~**CDC granularity.**~~ **Resolved:** Using BEFORE triggers on vanilla SQLite instead of Turso CDC. See Decision #8.
 
-3. **Bare date literals.** Endatabas allows `2025-06-15` as a date literal without quotes. SQLite (and Turso) parse this as `2025 - 6 - 15 = 2004`. Possible resolutions: require quotes, require a keyword prefix (`DATE '2025-06-15'` — which is standard SQL), or use context-sensitive parsing (risky).
+2. ~~**Document ID generation.**~~ **Resolved:** UUIDv7, stored as TEXT. See Decision #6.
 
-4. **Document ID generation.** Should `_id` be a UUID (globally unique, no coordination needed) or an autoincrementing integer (simpler, smaller, faster joins)? UUIDs are better for the general case, but they make history table indexes larger.
+3. ~~**Turso stability.**~~ **Resolved:** Start on vanilla SQLite, migrate to Turso later. See Decision #1.
 
-5. **History compaction.** In a long-lived database, history tables will grow without bound. Should there be a `COMPACT` command that merges old versions into summary records? What's the retention policy model? This needs design work.
+4. ~~**Query result format.**~~ **Resolved:** Custom `Document` type for the Rust API. See Decision #12.
 
-6. **Turso stability.** Turso Database is in beta. Building on it means inheriting its instability. Is the right move to start on vanilla SQLite (stable, boring) and migrate to Turso when it matures? Or is the CDC/MVCC value worth the risk now?
+### Open
 
-7. **Query result format.** Should queries return documents (JSON objects) or flat rows? Endatabas returns documents by default. SQLite tooling expects flat rows. Probably need both: documents for the programmatic API, flat rows for CLI/tooling compatibility.
+1. **JSONB performance.** Storing all document data as JSONB means every field access is a json_extract call. For hot-path queries on known fields, this could be slow. Should the engine opportunistically promote frequently-queried JSON keys to real columns (partial materialization)? This is effectively what Endatabas's adaptive indexing does.
+
+2. **Bare date literals.** Endatabas allows `2025-06-15` as a date literal without quotes. SQLite parses this as `2025 - 6 - 15 = 2004`. Deferred from v0.1 parser scope. Possible resolutions: require quotes, require a keyword prefix (`DATE '2025-06-15'` — which is standard SQL), or use context-sensitive parsing (risky).
+
+3. **History compaction.** In a long-lived database, history tables will grow without bound. Should there be a `COMPACT` command that merges old versions into summary records? What's the retention policy model? This needs design work.
 
 
 
 ## Prior Art and Influences
 
-- **Endatabas** — the direct inspiration. Immutable SQL document database with full history. Server-based, Common Lisp, Apache Arrow. [endatabas.com](https://www.endatabas.com)
+- **Endatabas** — the direct inspiration and target SQL dialect. Immutable SQL document database with full history. Server-based, Common Lisp, Apache Arrow. [endatabas.com](https://www.endatabas.com), [docs.endatabas.com/sql](https://docs.endatabas.com/sql/)
 - **XTDB** — immutable bitemporal database with Postgres-compatible SQL. Server-based, Clojure/Java, Arrow. [xtdb.com](https://xtdb.com)
 - **Dolt** — version-controlled SQL database (Git for data). Server-based, Go. [dolthub.com](https://www.dolthub.com)
 - **ImmuDB** — immutable ledger database, embeddable, PostgreSQL dialect subset. Go. [immudb.io](https://immudb.io)
 - **SirixDB** — embeddable temporal evolutionary database. Java. Low activity.
-- **SQLite temporal tables** — community patterns using triggers and history tables on vanilla SQLite. Fragile but proven.
-- **Stanchion** — columnar storage extension for SQLite. Zig. Alpha, unmaintained since early 2024. Demonstrated the concept of columnar virtual tables in SQLite but not viable as a dependency. [github.com/dgllghr/stanchion](https://github.com/dgllghr/stanchion)
-- **Turso Database** — Rust reimplementation of SQLite with CDC, MVCC, async I/O. Beta. [github.com/tursodatabase/turso](https://github.com/tursodatabase/turso)
+- **SQLite temporal tables** — community patterns using triggers and history tables on vanilla SQLite. cairndb's v0.1 versioning mechanism is a refined version of this approach.
+- **sqlparser-rs** — the Rust SQL parser used by cairndb-parser for standard SQL constructs. [github.com/sqlparser-rs/sqlparser-rs](https://github.com/sqlparser-rs/sqlparser-rs)
+- **Stanchion** — columnar storage extension for SQLite. Zig. Alpha, unmaintained since early 2024. Not viable as a dependency. [github.com/dgllghr/stanchion](https://github.com/dgllghr/stanchion)
+- **Turso Database** — Rust reimplementation of SQLite with CDC, MVCC, async I/O. Beta. Future migration target. [github.com/tursodatabase/turso](https://github.com/tursodatabase/turso)

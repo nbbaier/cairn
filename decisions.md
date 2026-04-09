@@ -87,3 +87,112 @@ Recorded from the initial design interview (April 2026). These decisions guided 
 **Decision:** In-memory SQLite databases for unit tests, with a small number of on-disk integration tests.
 
 **Rationale:** In-memory is fast, no cleanup needed, and sufficient for testing the storage schema, triggers, and query logic. A few on-disk tests verify persistence, WAL mode, and file handling.
+
+---
+
+# Parser Milestone Decisions
+
+Recorded from the parser design interview (April 2026). These decisions guide the v0.1 parser and query compiler implementation.
+
+## 15. Target SQL Dialect: Endb SQL Compatibility
+
+**Decision:** The long-term target dialect is the Endatabas SQL reference (https://docs.endatabas.com/sql/). Feature parity will be reached incrementally across multiple milestones.
+
+**Rationale:** Endb's SQL dialect is purpose-built for a temporal document database -- exactly what cairndb is. It covers document literals, time-travel queries, period predicates, path navigation, schema introspection, and schemaless DML. Adopting it as the north star avoids inventing a bespoke dialect and gives users a well-documented reference.
+
+## 16. Parser Scope: v0.1 Statement Set
+
+**Decision:** The v0.1 parser supports the following statements, all mapping to the existing `cairndb-core` Rust API:
+
+1. `INSERT INTO <table> (cols) VALUES (vals)` -- column/value form
+2. `INSERT INTO <table> {key: val, ...}` -- document literal form
+3. `SELECT * FROM <table>` -- current state
+4. `SELECT * FROM <table> WHERE _id = <id>` -- single document
+5. `SELECT * FROM <table> FOR SYSTEM_TIME AS OF <ts>` -- time travel
+6. `SELECT * FROM <table> FOR SYSTEM_TIME BETWEEN <ts1> AND <ts2>` -- time range
+7. `SELECT * FROM <table> FOR SYSTEM_TIME ALL` -- full history
+8. `UPDATE <table> SET col = val, ... WHERE _id = <id>` -- merge patch
+9. `DELETE FROM <table> WHERE _id = <id>` -- soft delete
+10. `ERASE FROM <table> WHERE _id = <id>` -- permanent removal
+11. `CREATE TABLE <table>` -- explicit table creation
+
+Mutations are ID-addressed only (WHERE _id = ...). Arbitrary WHERE clauses on mutations are deferred to v0.2+.
+
+**Rationale:** This set covers every method on the existing `Database` API. ID-addressed mutations match the core's design. Arbitrary WHERE on mutations requires either extending the core with filtered operations or query-then-loop in the facade -- both are v0.2 concerns.
+
+## 17. Base Parser: sqlparser-rs as Dependency
+
+**Decision:** Use `sqlparser-rs` as a dependency (not a fork) for parsing standard SQL constructs. The spec's original plan to fork Turso's parser is abandoned.
+
+**Rationale:** `sqlparser-rs` is the dominant Rust SQL parser (~4.5k stars, actively maintained, used by DataFusion/GlueSQL). It handles the full SQLite dialect. Forking Turso's parser only made sense when building on Turso's engine, which is deferred (Decision #1). Using `sqlparser-rs` as a dependency (not fork) means we get upstream improvements for free.
+
+## 18. Parsing Strategy: Hybrid Custom + sqlparser-rs
+
+**Decision:** Custom hand-written parsers for INSERT (both forms) and ERASE. For SELECT, strip `FOR SYSTEM_TIME` clauses before parsing, then use `sqlparser-rs`. Use `sqlparser-rs` directly for UPDATE, DELETE, and CREATE TABLE.
+
+The dispatch order is: try custom parsers first (INSERT, ERASE), fall back to `sqlparser-rs` for everything else.
+
+**Rationale:** INSERT needs custom parsing for document literal syntax (`{key: val}`), which `sqlparser-rs` cannot handle. ERASE is a non-standard statement `sqlparser-rs` won't recognize. `FOR SYSTEM_TIME` is a non-standard clause on otherwise-standard SELECT statements -- stripping it before parsing lets `sqlparser-rs` handle the rest of the SELECT (expressions, WHERE, etc.), which positions well for v0.2+ when SELECT gains projections, JOINs, and arbitrary WHERE. UPDATE, DELETE, and CREATE TABLE are standard SQL that `sqlparser-rs` parses natively.
+
+## 19. Document Literal Value Types: Medium Set
+
+**Decision:** The document literal parser supports: strings (single-quoted), integers, floats, booleans (`true`/`false`), null, nested objects (`{key: val}`), and arrays (`[val, ...]`). Bare date/time literals (unquoted `2024-01-01`) are deferred.
+
+**Rationale:** Nested objects and arrays are essential for a document database. Bare date literals create parsing ambiguity with arithmetic expressions (`2024-01-01` = `2024 - 1 - 1 = 2022`) -- the spec already flagged this as an open question. Users pass dates as quoted strings (`'2024-01-01'`) for now. This matches Endb's `TIMESTAMP '...'` / `DATE '...'` keyword-prefixed alternative.
+
+## 20. Compilation Target: Intermediate Representation
+
+**Decision:** The parser produces a typed IR (`Statement` enum) that the `cairndb` facade dispatches against the `cairndb-core` Rust API. The parser does NOT emit raw SQL strings.
+
+**Rationale:** The core Rust API already handles trigger management, transaction context, timestamp formatting, and all storage complexity. Emitting raw SQL would duplicate that logic and bypass safety guarantees. A typed IR keeps `cairndb-parser` independent of `cairndb-core` (they have zero dependency on each other, per Decision #3) and makes the parser's output testable in isolation.
+
+## 21. IR Design: Extensible Statement Enum
+
+**Decision:** The IR uses a `Statement` enum with a `Filter` type for extensibility:
+
+```rust
+enum Statement {
+    Insert { table: String, data: Map<String, Value> },
+    Select { table: String, filter: Option<Filter>, temporal: Option<TemporalClause> },
+    Update { table: String, filter: Filter, patch: Map<String, Value> },
+    Delete { table: String, filter: Filter },
+    Erase { table: String, filter: Filter },
+    CreateTable { table: String },
+}
+
+enum Filter {
+    ById(String),
+}
+
+enum TemporalClause {
+    AsOf(String),
+    Between { from: String, to: String },
+    All,
+}
+```
+
+Timestamps are raw strings (core layer validates). `Filter` is extensible for v0.2+ (`Where(Expr)` variant).
+
+**Rationale:** The IR reflects SQL structure rather than core API method signatures -- that mapping is the facade's responsibility. Merging `SELECT *` and `SELECT WHERE _id = ?` into one `Select` variant with optional fields is honest to the SQL and easier to extend. `serde_json::Map<String, Value>` for data reuses the existing type used throughout `cairndb-core`.
+
+## 22. SQL Dispatch: cairndb Facade Crate
+
+**Decision:** SQL-to-core-API dispatch lives in the `cairndb` facade crate via a new `Database::sql()` method. This method parses SQL via `cairndb-parser`, pattern-matches on the `Statement` IR, and calls the appropriate `cairndb-core` method.
+
+**Rationale:** `cairndb` is the only crate that depends on both parser and core. It's the public API users interact with. This keeps the two lower crates independent of each other, exactly as designed in Decision #3.
+
+## 23. INSERT Syntax: Column/Value and Document Literal
+
+**Decision:** Support both Endb-style column/value syntax and document literal syntax for INSERT:
+
+```sql
+-- Column/value (standard SQL, parsed by custom INSERT parser)
+INSERT INTO events (name, status) VALUES ('deploy', 'pending')
+
+-- Document literal (Endb-style, parsed by custom INSERT parser)
+INSERT INTO events {name: 'deploy', status: 'pending'}
+```
+
+Both forms produce the same IR: `Statement::Insert { table, data }` with a `serde_json::Map`.
+
+**Rationale:** Column/value is standard SQL and what `sqlparser-rs` would parse (though we use our custom parser for both INSERT forms for consistency). Document literal is Endb's signature syntax and more natural for a document database. Supporting both from v0.1 means neither form is a second-class citizen.
