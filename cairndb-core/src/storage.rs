@@ -318,6 +318,311 @@ pub(crate) fn query(conn: &Connection, table: &str) -> Result<QueryResult> {
     Ok(QueryResult::new(docs))
 }
 
+/// Returns every version of every document in `table` (history UNION ALL current).
+///
+/// History rows have `_op` (e.g. `"UPDATE"` or `"DELETE"`) and `_valid_to`
+/// (epoch-ms integer) injected into their data map as metadata fields.
+/// Current rows have no `_op` or `_valid_to` metadata injected.
+///
+/// Returns `Error::TableNotFound` if the table doesn't exist.
+pub(crate) fn query_all(conn: &Connection, table: &str) -> Result<QueryResult> {
+    schema::validate_table_name(table)?;
+
+    if !table_exists(conn, table)? {
+        return Err(Error::TableNotFound(table.to_string()));
+    }
+
+    let mut docs = Vec::new();
+
+    // History rows: include _op and _valid_to metadata
+    {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT _id, json(_data), _valid_from, _txn_id, _valid_to, _op \
+             FROM _{table}_history \
+             ORDER BY _valid_from"
+        ))?;
+
+        let raw: Vec<(String, String, i64, i64, i64, String)> = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
+            let data_val: Value = serde_json::from_str(&data_str)?;
+            let mut map = match data_val {
+                Value::Object(m) => m,
+                _ => unreachable!("stored data is always a JSON object"),
+            };
+            map.insert("_op".to_string(), Value::String(op));
+            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
+            docs.push(Document::new(id, map, valid_from, txn_id));
+        }
+    }
+
+    // Current rows: no _op / _valid_to metadata
+    docs.extend(read_all_current(conn, table)?);
+
+    Ok(QueryResult::new(docs))
+}
+
+/// Returns documents as they existed at `timestamp_iso` (ISO 8601 UTC string).
+///
+/// Inclusive boundary on `_valid_from`: a document inserted AT `ts` is returned.
+///
+/// Queries:
+/// - history rows where `_valid_from <= ts AND _valid_to > ts`
+/// - current rows where `_valid_from <= ts`
+///
+/// Returns `Error::TableNotFound` / `Error::InvalidTimestamp` as appropriate.
+pub(crate) fn query_at(conn: &Connection, table: &str, timestamp_iso: &str) -> Result<QueryResult> {
+    schema::validate_table_name(table)?;
+
+    if !table_exists(conn, table)? {
+        return Err(Error::TableNotFound(table.to_string()));
+    }
+
+    let ts = iso8601_to_epoch_ms(timestamp_iso)?;
+    let mut docs = Vec::new();
+
+    // History rows: existed at ts
+    {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT _id, json(_data), _valid_from, _txn_id, _valid_to, _op \
+             FROM _{table}_history \
+             WHERE _valid_from <= ?1 AND _valid_to > ?1"
+        ))?;
+
+        let raw: Vec<(String, String, i64, i64, i64, String)> = stmt
+            .query_map(rusqlite::params![ts], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
+            let data_val: Value = serde_json::from_str(&data_str)?;
+            let mut map = match data_val {
+                Value::Object(m) => m,
+                _ => unreachable!("stored data is always a JSON object"),
+            };
+            map.insert("_op".to_string(), Value::String(op));
+            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
+            docs.push(Document::new(id, map, valid_from, txn_id));
+        }
+    }
+
+    // Current rows: existed at ts
+    {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT _id, json(_data), _valid_from, _txn_id \
+             FROM _{table}_current \
+             WHERE _valid_from <= ?1"
+        ))?;
+
+        let raw: Vec<(String, String, i64, i64)> = stmt
+            .query_map(rusqlite::params![ts], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        for (id, data_str, valid_from, txn_id) in raw {
+            let data_val: Value = serde_json::from_str(&data_str)?;
+            let map = match data_val {
+                Value::Object(m) => m,
+                _ => unreachable!("stored data is always a JSON object"),
+            };
+            docs.push(Document::new(id, map, valid_from, txn_id));
+        }
+    }
+
+    Ok(QueryResult::new(docs))
+}
+
+/// Returns all versions of documents active during the half-open range `[from_iso, to_iso)`.
+///
+/// Queries:
+/// - history rows where `_valid_from < to AND _valid_to > from`
+/// - current rows where `_valid_from < to`
+///
+/// Returns `Error::TableNotFound` / `Error::InvalidTimestamp` as appropriate.
+pub(crate) fn query_between(
+    conn: &Connection,
+    table: &str,
+    from_iso: &str,
+    to_iso: &str,
+) -> Result<QueryResult> {
+    schema::validate_table_name(table)?;
+
+    if !table_exists(conn, table)? {
+        return Err(Error::TableNotFound(table.to_string()));
+    }
+
+    let from_ts = iso8601_to_epoch_ms(from_iso)?;
+    let to_ts = iso8601_to_epoch_ms(to_iso)?;
+    let mut docs = Vec::new();
+
+    // History rows: active during [from, to)
+    {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT _id, json(_data), _valid_from, _txn_id, _valid_to, _op \
+             FROM _{table}_history \
+             WHERE _valid_from < ?2 AND _valid_to > ?1"
+        ))?;
+
+        let raw: Vec<(String, String, i64, i64, i64, String)> = stmt
+            .query_map(rusqlite::params![from_ts, to_ts], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        for (id, data_str, valid_from, txn_id, valid_to, op) in raw {
+            let data_val: Value = serde_json::from_str(&data_str)?;
+            let mut map = match data_val {
+                Value::Object(m) => m,
+                _ => unreachable!("stored data is always a JSON object"),
+            };
+            map.insert("_op".to_string(), Value::String(op));
+            map.insert("_valid_to".to_string(), Value::Number(valid_to.into()));
+            docs.push(Document::new(id, map, valid_from, txn_id));
+        }
+    }
+
+    // Current rows: active during [from, to)
+    {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT _id, json(_data), _valid_from, _txn_id \
+             FROM _{table}_current \
+             WHERE _valid_from < ?1"
+        ))?;
+
+        let raw: Vec<(String, String, i64, i64)> = stmt
+            .query_map(rusqlite::params![to_ts], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        for (id, data_str, valid_from, txn_id) in raw {
+            let data_val: Value = serde_json::from_str(&data_str)?;
+            let map = match data_val {
+                Value::Object(m) => m,
+                _ => unreachable!("stored data is always a JSON object"),
+            };
+            docs.push(Document::new(id, map, valid_from, txn_id));
+        }
+    }
+
+    Ok(QueryResult::new(docs))
+}
+
+// ---------------------------------------------------------------------------
+// Timestamp parsing helpers
+// ---------------------------------------------------------------------------
+
+/// Parses an ISO 8601 UTC timestamp string into epoch milliseconds.
+///
+/// Expected format: `YYYY-MM-DDTHH:MM:SS.mmmZ` (exactly 24 characters).
+pub(crate) fn iso8601_to_epoch_ms(s: &str) -> Result<i64> {
+    if s.len() != 24 || !s.ends_with('Z') {
+        return Err(Error::InvalidTimestamp(format!(
+            "expected format 'YYYY-MM-DDTHH:MM:SS.mmmZ' (24 chars), got: {s:?}"
+        )));
+    }
+    let b = s.as_bytes();
+    // Validate separator positions
+    if b[4] != b'-' || b[7] != b'-' || b[10] != b'T' || b[13] != b':' || b[16] != b':'
+        || b[19] != b'.'
+    {
+        return Err(Error::InvalidTimestamp(format!(
+            "malformed ISO 8601 separators in: {s:?}"
+        )));
+    }
+
+    let year  = parse_digits_i64(&b[0..4])?  as i32;
+    let month = parse_digits_i64(&b[5..7])?  as u32;
+    let day   = parse_digits_i64(&b[8..10])? as u32;
+    let hour  = parse_digits_i64(&b[11..13])?;
+    let min   = parse_digits_i64(&b[14..16])?;
+    let sec   = parse_digits_i64(&b[17..19])?;
+    let ms    = parse_digits_i64(&b[20..23])?;
+
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || hour > 23
+        || min > 59
+        || sec > 59
+    {
+        return Err(Error::InvalidTimestamp(format!(
+            "out-of-range field in: {s:?}"
+        )));
+    }
+
+    let days = days_from_civil(year, month, day);
+    let epoch_secs = days * 86_400 + hour * 3_600 + min * 60 + sec;
+    Ok(epoch_secs * 1_000 + ms)
+}
+
+/// Converts (year, month, day) to days since Unix epoch (1970-01-01).
+///
+/// Uses Howard Hinnant's algorithm — the inverse of `civil_from_days` in
+/// `document.rs`.
+fn days_from_civil(y: i32, m: u32, d: u32) -> i64 {
+    let (y, m) = if m <= 2 {
+        (y as i64 - 1, m + 9)
+    } else {
+        (y as i64, m - 3)
+    };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let doy = (153 * m as i64 + 2) / 5 + d as i64 - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+/// Parses a slice of ASCII digit bytes into an `i64`.
+fn parse_digits_i64(bytes: &[u8]) -> Result<i64> {
+    let mut n: i64 = 0;
+    for &b in bytes {
+        if !b.is_ascii_digit() {
+            return Err(Error::InvalidTimestamp(format!(
+                "non-digit byte 0x{b:02X} in timestamp"
+            )));
+        }
+        n = n * 10 + (b - b'0') as i64;
+    }
+    Ok(n)
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -974,5 +1279,215 @@ mod tests {
             matches!(result, Err(Error::TableNotFound(_))),
             "expected TableNotFound, got {result:?}"
         );
+    }
+
+    // ------------------------------------------------------------------
+    // Timestamp parsing — iso8601_to_epoch_ms round-trip
+    // ------------------------------------------------------------------
+
+    /// Unix epoch round-trips correctly
+    #[test]
+    fn iso8601_roundtrip_epoch_zero() {
+        // epoch_ms_to_iso8601(0) == "1970-01-01T00:00:00.000Z"
+        let iso = "1970-01-01T00:00:00.000Z";
+        let ms = iso8601_to_epoch_ms(iso).unwrap();
+        assert_eq!(ms, 0);
+    }
+
+    /// Known timestamp round-trip: 2024-01-01
+    #[test]
+    fn iso8601_roundtrip_known_date() {
+        let iso = "2024-01-01T00:00:00.000Z";
+        let ms = iso8601_to_epoch_ms(iso).unwrap();
+        assert_eq!(ms, 1_704_067_200_000);
+    }
+
+    /// Milliseconds preserved
+    #[test]
+    fn iso8601_preserves_milliseconds() {
+        let ms = iso8601_to_epoch_ms("1970-01-01T00:00:00.999Z").unwrap();
+        assert_eq!(ms, 999);
+    }
+
+    /// Invalid format returns InvalidTimestamp
+    #[test]
+    fn iso8601_invalid_format_returns_error() {
+        assert!(iso8601_to_epoch_ms("not-a-date").is_err());
+        assert!(iso8601_to_epoch_ms("2024-01-01").is_err());
+        assert!(iso8601_to_epoch_ms("").is_err());
+    }
+
+    // ------------------------------------------------------------------
+    // query_all — VAL-QRY-004, VAL-QRY-005
+    // ------------------------------------------------------------------
+
+    /// VAL-QRY-004: query_all() returns all versions (history + current)
+    #[test]
+    fn query_all_returns_all_versions() {
+        use std::thread::sleep;
+        use std::time::Duration;
+        let (conn, mut cache) = open_conn();
+
+        // Insert A, then update A, then insert B
+        let a = insert(&conn, &mut cache, "events", json!({"n": "a_v0"})).unwrap();
+        sleep(Duration::from_millis(10));
+        update(&conn, "events", a.id(), json!({"n": "a_v1"})).unwrap();
+        sleep(Duration::from_millis(10));
+        insert(&conn, &mut cache, "events", json!({"n": "b"})).unwrap();
+
+        // query_all: 1 history row (a_v0 UPDATE) + 2 current rows (a_v1, b) = 3
+        let qr = query_all(&conn, "events").unwrap();
+        assert_eq!(qr.len(), 3, "should see 3 total version entries");
+    }
+
+    /// query_all on non-existent table returns TableNotFound
+    #[test]
+    fn query_all_nonexistent_table_returns_error() {
+        let (conn, _cache) = open_conn();
+        assert!(matches!(
+            query_all(&conn, "never_created"),
+            Err(Error::TableNotFound(_))
+        ));
+    }
+
+    /// VAL-QRY-005: query_all after insert→update→delete shows lifecycle
+    /// Note: with BEFORE-only triggers (no AFTER INSERT), insert→update→delete
+    /// produces 2 history rows: one UPDATE and one DELETE. query_all = 2.
+    #[test]
+    fn query_all_lifecycle_shows_correct_op_sequence() {
+        use std::thread::sleep;
+        use std::time::Duration;
+        let (conn, mut cache) = open_conn();
+
+        let doc = insert(&conn, &mut cache, "events", json!({"v": 0})).unwrap();
+        sleep(Duration::from_millis(10));
+        update(&conn, "events", doc.id(), json!({"v": 1})).unwrap();
+        sleep(Duration::from_millis(10));
+        delete(&conn, "events", doc.id()).unwrap();
+
+        let qr = query_all(&conn, "events").unwrap();
+        // 2 history rows (UPDATE + DELETE) + 0 current = 2
+        assert_eq!(qr.len(), 2, "should have 2 versioned entries after lifecycle");
+
+        // Check _op values are present
+        let ops: Vec<String> = qr
+            .documents()
+            .iter()
+            .filter_map(|d| d.get("_op").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
+        assert!(ops.contains(&"UPDATE".to_string()), "_op=UPDATE should be present");
+        assert!(ops.contains(&"DELETE".to_string()), "_op=DELETE should be present");
+    }
+
+    // ------------------------------------------------------------------
+    // query_at — VAL-QRY-006, VAL-QRY-007, VAL-QRY-008, VAL-BOUND-004
+    // ------------------------------------------------------------------
+
+    /// VAL-QRY-007: query_at() before any inserts returns empty
+    #[test]
+    fn query_at_before_inserts_returns_empty() {
+        let (conn, mut cache) = open_conn();
+        schema::ensure_table(&conn, &mut cache, "events").unwrap();
+
+        let qr = query_at(&conn, "events", "1970-01-01T00:00:00.000Z").unwrap();
+        assert!(qr.is_empty(), "query_at before any data should return empty");
+    }
+
+    /// VAL-QRY-006: query_at() returns state at specific timestamp
+    #[test]
+    fn query_at_returns_state_at_timestamp() {
+        use std::thread::sleep;
+        use std::time::Duration;
+        let (conn, mut cache) = open_conn();
+
+        let doc = insert(&conn, &mut cache, "events", json!({"v": "original"})).unwrap();
+        let t1 = doc.system_time(); // ISO timestamp after insert
+        sleep(Duration::from_millis(10));
+        let updated = update(&conn, "events", doc.id(), json!({"v": "updated"})).unwrap();
+        let t2 = updated.system_time();
+
+        // query_at(t1) should return original
+        let at_t1 = query_at(&conn, "events", &t1).unwrap();
+        assert_eq!(at_t1.len(), 1);
+        assert_eq!(at_t1.documents()[0].get("v"), Some(&json!("original")));
+
+        // query_at(t2) should return updated
+        let at_t2 = query_at(&conn, "events", &t2).unwrap();
+        assert_eq!(at_t2.len(), 1);
+        assert_eq!(at_t2.documents()[0].get("v"), Some(&json!("updated")));
+    }
+
+    /// VAL-QRY-008: query_at() after delete returns empty for that document
+    #[test]
+    fn query_at_after_delete_returns_empty() {
+        use std::thread::sleep;
+        use std::time::Duration;
+        let (conn, mut cache) = open_conn();
+
+        let doc = insert(&conn, &mut cache, "events", json!({"v": 1})).unwrap();
+        sleep(Duration::from_millis(10));
+        delete(&conn, "events", doc.id()).unwrap();
+
+        // A future timestamp should show empty
+        let future = "2099-01-01T00:00:00.000Z";
+        let qr = query_at(&conn, "events", future).unwrap();
+        assert!(
+            qr.documents().iter().all(|d| d.id() != doc.id()),
+            "deleted doc should not appear in query_at after deletion"
+        );
+    }
+
+    /// VAL-BOUND-004: query_at at exact insert timestamp is inclusive
+    #[test]
+    fn query_at_exact_insert_timestamp_inclusive() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"v": "at_insert"})).unwrap();
+        let t_insert = doc.system_time();
+
+        // query_at at the exact insert timestamp should include the document
+        let qr = query_at(&conn, "events", &t_insert).unwrap();
+        let found = qr.documents().iter().any(|d| d.id() == doc.id());
+        assert!(found, "document should be visible at its exact insert timestamp (inclusive boundary)");
+    }
+
+    // ------------------------------------------------------------------
+    // query_between — VAL-QRY-009, VAL-QRY-010
+    // ------------------------------------------------------------------
+
+    /// VAL-QRY-010: query_between() before all data returns empty
+    #[test]
+    fn query_between_before_data_returns_empty() {
+        let (conn, mut cache) = open_conn();
+        insert(&conn, &mut cache, "events", json!({"v": 1})).unwrap();
+
+        let qr = query_between(&conn, "events", "1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.001Z").unwrap();
+        assert!(qr.is_empty(), "query_between entirely before data should return empty");
+    }
+
+    /// VAL-QRY-009: query_between() returns versions active during range
+    #[test]
+    fn query_between_returns_versions_active_during_range() {
+        use std::thread::sleep;
+        use std::time::Duration;
+        let (conn, mut cache) = open_conn();
+
+        let doc = insert(&conn, &mut cache, "events", json!({"v": "v0"})).unwrap();
+        let t1 = doc.system_time();
+        sleep(Duration::from_millis(10));
+        update(&conn, "events", doc.id(), json!({"v": "v1"})).unwrap();
+
+        // query_between(t1, far_future) should return both versions
+        // (1 history: v0 active from t1 to t2) + (1 current: v1)
+        let qr = query_between(&conn, "events", &t1, "2099-01-01T00:00:00.000Z").unwrap();
+        assert_eq!(qr.len(), 2, "should find 2 versions: the history version and the current version");
+
+        // Verify both v0 and v1 data are present
+        let values: Vec<&str> = qr
+            .documents()
+            .iter()
+            .filter_map(|d| d.get("v").and_then(|v| v.as_str()))
+            .collect();
+        assert!(values.contains(&"v0"), "should include original v0");
+        assert!(values.contains(&"v1"), "should include updated v1");
     }
 }
