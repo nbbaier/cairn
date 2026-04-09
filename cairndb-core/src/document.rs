@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 /// A versioned JSON document stored in the database.
 ///
@@ -9,7 +9,7 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
     id: String,
-    data: Value,
+    data: Map<String, Value>,
     valid_from: i64,
     txn_id: i64,
 }
@@ -17,7 +17,7 @@ pub struct Document {
 impl Document {
     /// Creates a new `Document`.  For internal use only.
     #[allow(dead_code)]
-    pub(crate) fn new(id: String, data: Value, valid_from: i64, txn_id: i64) -> Self {
+    pub(crate) fn new(id: String, data: Map<String, Value>, valid_from: i64, txn_id: i64) -> Self {
         Self {
             id,
             data,
@@ -38,8 +38,8 @@ impl Document {
         epoch_ms_to_iso8601(self.valid_from)
     }
 
-    /// Returns the document's JSON data payload.
-    pub fn data(&self) -> &Value {
+    /// Returns the document's JSON data payload as a JSON object map.
+    pub fn data(&self) -> &Map<String, Value> {
         &self.data
     }
 
@@ -169,7 +169,11 @@ mod tests {
     // ------------------------------------------------------------------
 
     fn make_doc(id: &str, data: Value, valid_from: i64, txn_id: i64) -> Document {
-        Document::new(id.to_string(), data, valid_from, txn_id)
+        let map = match data {
+            Value::Object(m) => m,
+            _ => panic!("test data must be a JSON object"),
+        };
+        Document::new(id.to_string(), map, valid_from, txn_id)
     }
 
     /// Validate that a string looks like an ISO 8601 UTC timestamp
