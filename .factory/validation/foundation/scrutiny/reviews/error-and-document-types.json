@@ -1,0 +1,33 @@
+{
+  "featureId": "error-and-document-types",
+  "reviewedAt": "2026-04-09T19:21:49Z",
+  "commitId": "442c34d",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature adds the requested Error variants, Document/QueryResult APIs, and dependency wiring, but it misses a required type contract for Document.data.",
+    "issues": [
+      {
+        "file": "cairndb-core/src/document.rs",
+        "line": 12,
+        "severity": "blocking",
+        "description": "Feature description requires `Document` to store `data` as `serde_json::Map<String, Value>`, but implementation uses `serde_json::Value` (`data: Value`). This weakens the object-only invariant and allows non-object payloads, which breaks the specified struct contract."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Mission conventions and implementation guidance conflict on timestamp conversion location: AGENTS says conversion should happen in Database/storage, while this feature (and implementation) performs conversion in Document::system_time.",
+      "evidence": "AGENTS.md line 27 says conversion happens in Database/storage, not Document; commit 442c34d implements conversion helpers in cairndb-core/src/document.rs (epoch_ms_to_iso8601/civil_from_days)."
+    },
+    {
+      "area": "skills",
+      "observation": "The rust-worker skill mandates RED-first execution (`cargo test --package cairndb-core` should fail before implementation), but transcript skeleton does not show this step before code edits.",
+      "evidence": "rust-worker SKILL.md lines 26-33 require failing tests first; worker-transcripts.jsonl entry for session 85d8fd99-7516-4568-8ce2-8f35ebd8f56c shows baseline `cargo test --workspace` then file edits, with no pre-implementation failing `cargo test --package cairndb-core` run."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, commit diff, transcript skeleton, and shared-state docs. Marked feature as failed due to a blocking type-contract mismatch in Document.data; recorded convention/skill observations for shared-state follow-up."
+}
