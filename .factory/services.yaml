@@ -1,7 +1,7 @@
 commands:
-  build: cargo build --workspace
-  test: cargo test --workspace
-  clippy: cargo clippy --all-targets
-  check: cargo check --workspace
+   build: cargo build --workspace
+   test: cargo test --workspace
+   clippy: cargo clippy --all-targets
+   check: cargo check --workspace
 
 services: {}

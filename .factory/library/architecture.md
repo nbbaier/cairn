@@ -30,6 +30,7 @@ db.rs (Database) ── public facade, Mutex<Connection>, delegates to internal 
 ## Data Flow
 
 ### Write Path (insert/update/delete)
+
 1. `Database` method acquires `Mutex<Connection>` lock
 2. `versioning::begin_write()` — creates `_cairn_tx_context` temp table, inserts into `_transactions`, returns (txn_id, timestamp)
 3. `schema::ensure_table()` — creates physical tables if not exists (idempotent)
@@ -39,12 +40,14 @@ db.rs (Database) ── public facade, Mutex<Connection>, delegates to internal 
 7. Returns `Document` to caller
 
 ### Read Path (query/get)
+
 1. `Database` method acquires `Mutex<Connection>` lock
 2. `storage::query*()` — builds and executes SELECT SQL
 3. Rows mapped to `Document` objects via `document::Document::from_row()`
 4. Returns `QueryResult` wrapper
 
 ### Erase Path
+
 1. Same as write path for transaction setup
 2. `storage::erase()` — DELETE from both `_T_current` and `_T_history`, INSERT into `_erasure_log`
 3. Commit transaction
@@ -54,12 +57,14 @@ db.rs (Database) ── public facade, Mutex<Connection>, delegates to internal 
 Each logical table `T` maps to two physical SQLite tables:
 
 **`_T_current`** (latest version of each document):
+
 - `_id TEXT PRIMARY KEY` — UUIDv7, hyphenated
 - `_data JSONB NOT NULL` — document content
 - `_valid_from INTEGER NOT NULL` — epoch milliseconds
 - `_txn_id INTEGER NOT NULL` — transaction ID
 
 **`_T_history`** (all prior versions, append-only):
+
 - `_id TEXT NOT NULL`
 - `_data JSONB NOT NULL`
 - `_valid_from INTEGER NOT NULL`
@@ -69,6 +74,7 @@ Each logical table `T` maps to two physical SQLite tables:
 - Composite index: `(_id, _valid_from, _valid_to)`
 
 **System tables** (created on DB init):
+
 - `_transactions` — txn_id (AUTOINCREMENT), timestamp, metadata (JSONB)
 - `_schema_registry` — table, key_path, inferred_type, first_seen, last_seen (DDL only in v0.1)
 - `_erasure_log` — table, id, erased_at
@@ -76,13 +82,16 @@ Each logical table `T` maps to two physical SQLite tables:
 ## Versioning Mechanism
 
 SQLite BEFORE triggers on `_T_current`:
+
 - **BEFORE UPDATE**: copies old row to `_T_history` with `_op='UPDATE'`, `_valid_to` from `_cairn_tx_context`
 - **BEFORE DELETE**: copies old row to `_T_history` with `_op='DELETE'`, `_valid_to` from `_cairn_tx_context`
 
 Transaction context passed via connection-scoped temp table `_cairn_tx_context`:
+
 ```sql
 CREATE TEMP TABLE _cairn_tx_context (txn_id INTEGER, timestamp INTEGER);
 ```
+
 Populated by Rust layer at `begin_write()`, read by triggers, dropped at `commit()`/`rollback()`.
 
 ## Concurrency Model

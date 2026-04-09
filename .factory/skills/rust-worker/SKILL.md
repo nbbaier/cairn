@@ -27,7 +27,7 @@ None.
    - Happy path for each public function
    - Error cases (invalid input, not-found, etc.)
    - Edge cases from the feature's `expectedBehavior`
-   
+
    Run `cargo test --package cairndb-core` — tests should FAIL (compile errors or assertion failures).
 
 5. **Implement to make tests pass (GREEN).** Write the minimum implementation to make all tests pass. Follow the architectural patterns in AGENTS.md.
@@ -47,34 +47,66 @@ None.
 
 ```json
 {
-  "salientSummary": "Implemented the document module with Document struct (id/system_time/data/get/txn_id accessors) and QueryResult wrapper with IntoIterator. Added serde and serde_json deps. Ran `cargo test --workspace` (12 passing) and `cargo clippy` (clean).",
-  "whatWasImplemented": "cairndb-core/src/document.rs: Document struct wrapping id (String), data (serde_json::Map), valid_from (i64), txn_id (i64). Public accessors: id(), system_time() (converts epoch ms to ISO 8601), data(), get(key), txn_id(). Serialize/Deserialize derives. QueryResult struct with len(), is_empty(), documents(), into_documents(), IntoIterator impl. Updated lib.rs with pub mod document and re-exports.",
-  "whatWasLeftUndone": "",
-  "verification": {
-    "commandsRun": [
-      { "command": "cargo test --workspace", "exitCode": 0, "observation": "12 tests passed, 0 failed" },
-      { "command": "cargo clippy --all-targets", "exitCode": 0, "observation": "No warnings" }
-    ],
-    "interactiveChecks": []
-  },
-  "tests": {
-    "added": [
-      {
-        "file": "cairndb-core/src/document.rs",
-        "cases": [
-          { "name": "document_id_format", "verifies": "id() returns valid UUIDv7 string" },
-          { "name": "document_system_time_iso8601", "verifies": "system_time() returns ISO 8601 string" },
-          { "name": "document_data_access", "verifies": "data() returns user JSON map" },
-          { "name": "document_get_field", "verifies": "get() returns Some for existing, None for missing" },
-          { "name": "document_serde_roundtrip", "verifies": "Serialize then Deserialize preserves all fields" },
-          { "name": "query_result_accessors", "verifies": "len(), is_empty(), documents() work correctly" },
-          { "name": "query_result_iteration", "verifies": "IntoIterator yields all documents" },
-          { "name": "query_result_empty", "verifies": "empty result: is_empty()==true, len()==0" }
-        ]
-      }
-    ]
-  },
-  "discoveredIssues": []
+   "salientSummary": "Implemented the document module with Document struct (id/system_time/data/get/txn_id accessors) and QueryResult wrapper with IntoIterator. Added serde and serde_json deps. Ran `cargo test --workspace` (12 passing) and `cargo clippy` (clean).",
+   "whatWasImplemented": "cairndb-core/src/document.rs: Document struct wrapping id (String), data (serde_json::Map), valid_from (i64), txn_id (i64). Public accessors: id(), system_time() (converts epoch ms to ISO 8601), data(), get(key), txn_id(). Serialize/Deserialize derives. QueryResult struct with len(), is_empty(), documents(), into_documents(), IntoIterator impl. Updated lib.rs with pub mod document and re-exports.",
+   "whatWasLeftUndone": "",
+   "verification": {
+      "commandsRun": [
+         {
+            "command": "cargo test --workspace",
+            "exitCode": 0,
+            "observation": "12 tests passed, 0 failed"
+         },
+         {
+            "command": "cargo clippy --all-targets",
+            "exitCode": 0,
+            "observation": "No warnings"
+         }
+      ],
+      "interactiveChecks": []
+   },
+   "tests": {
+      "added": [
+         {
+            "file": "cairndb-core/src/document.rs",
+            "cases": [
+               {
+                  "name": "document_id_format",
+                  "verifies": "id() returns valid UUIDv7 string"
+               },
+               {
+                  "name": "document_system_time_iso8601",
+                  "verifies": "system_time() returns ISO 8601 string"
+               },
+               {
+                  "name": "document_data_access",
+                  "verifies": "data() returns user JSON map"
+               },
+               {
+                  "name": "document_get_field",
+                  "verifies": "get() returns Some for existing, None for missing"
+               },
+               {
+                  "name": "document_serde_roundtrip",
+                  "verifies": "Serialize then Deserialize preserves all fields"
+               },
+               {
+                  "name": "query_result_accessors",
+                  "verifies": "len(), is_empty(), documents() work correctly"
+               },
+               {
+                  "name": "query_result_iteration",
+                  "verifies": "IntoIterator yields all documents"
+               },
+               {
+                  "name": "query_result_empty",
+                  "verifies": "empty result: is_empty()==true, len()==0"
+               }
+            ]
+         }
+      ]
+   },
+   "discoveredIssues": []
 }
 ```
 

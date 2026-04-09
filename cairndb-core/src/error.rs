@@ -24,6 +24,10 @@ pub enum Error {
     /// The requested document does not exist.
     #[error("document not found: {0}")]
     DocumentNotFound(String),
+
+    /// A table name failed validation (empty, starts with a digit, contains special characters).
+    #[error("invalid table name: {0}")]
+    InvalidTableName(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
