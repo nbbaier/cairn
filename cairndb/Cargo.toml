@@ -5,3 +5,9 @@ edition = "2021"
 
 [dependencies]
 cairndb-core = { path = "../cairndb-core" }
+cairndb-parser = { path = "../cairndb-parser" }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
