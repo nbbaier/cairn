@@ -77,7 +77,16 @@ fn parse_create_table(ct: ast::CreateTable) -> Result<Statement> {
         ));
     }
 
-    let table = ct.name.to_string();
+    let parts = &ct.name.0;
+    if parts.len() != 1 {
+        return Err(Error::Unsupported(
+            "qualified table names are not supported".to_string(),
+        ));
+    }
+    let ident = parts[0]
+        .as_ident()
+        .ok_or_else(|| Error::Parse("expected a simple identifier for table name".to_string()))?;
+    let table = ident.value.clone();
 
     Ok(Statement::CreateTable { table })
 }
@@ -158,5 +167,23 @@ mod tests {
         let err = parse_standard("CREATE TEMPORARY TABLE t").unwrap_err();
         assert!(matches!(err, Error::Unsupported(_)));
         assert!(err.to_string().contains("TEMPORARY"));
+    }
+
+    #[test]
+    fn create_table_quoted_identifier() {
+        let stmt = parse_standard(r#"CREATE TABLE "events""#).unwrap();
+        assert_eq!(
+            stmt,
+            Statement::CreateTable {
+                table: "events".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn create_table_qualified_name_rejected() {
+        let err = parse_standard("CREATE TABLE schema1.events").unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("qualified table names"));
     }
 }
