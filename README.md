@@ -6,7 +6,7 @@ An embedded temporal document database built on SQLite.
 
 Cairn is an in-process, schema-flexible document database with automatic versioning and time-travel queries. Every insert, update, and delete is recorded — nothing is destroyed unless you explicitly erase it. The storage engine is SQLite (via rusqlite), so your database is a single file on disk.
 
-Think of it as what [Endatabas](https://www.endatabas.com/) would look like if it were embedded like SQLite instead of running as a server.
+Inspired by [Endatabas](https://www.endatabas.com/). Think of it as what Endatabas would look like if it were embedded like SQLite instead of running as a server.
 
 ## Status
 
