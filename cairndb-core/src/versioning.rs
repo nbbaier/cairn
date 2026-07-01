@@ -154,10 +154,7 @@ mod tests {
             ts > 1_577_836_800_000,
             "timestamp {ts} is before 2020-01-01"
         );
-        assert!(
-            ts < 4_102_444_800_000,
-            "timestamp {ts} is after 2100-01-01"
-        );
+        assert!(ts < 4_102_444_800_000, "timestamp {ts} is after 2100-01-01");
     }
 
     // ------------------------------------------------------------------
@@ -172,7 +169,11 @@ mod tests {
         let (txn_id, _ts) = begin_write(&conn).unwrap();
         commit(&conn).unwrap();
 
-        assert_eq!(txn_count(&conn), 1, "_transactions should have 1 row after commit");
+        assert_eq!(
+            txn_count(&conn),
+            1,
+            "_transactions should have 1 row after commit"
+        );
         let (stored_id, stored_ts): (i64, i64) = conn
             .query_row(
                 "SELECT txn_id, timestamp FROM _transactions WHERE txn_id = ?1",
@@ -194,11 +195,19 @@ mod tests {
 
         begin_write(&conn).unwrap();
         // Inside the transaction: context row must exist
-        assert_eq!(ctx_count(&conn), 1, "_cairn_tx_context should have 1 row during transaction");
+        assert_eq!(
+            ctx_count(&conn),
+            1,
+            "_cairn_tx_context should have 1 row during transaction"
+        );
 
         commit(&conn).unwrap();
         // After commit: context row must be gone
-        assert_eq!(ctx_count(&conn), 0, "_cairn_tx_context should be empty after commit");
+        assert_eq!(
+            ctx_count(&conn),
+            0,
+            "_cairn_tx_context should be empty after commit"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -215,8 +224,16 @@ mod tests {
 
         rollback(&conn).unwrap();
 
-        assert_eq!(txn_count(&conn), 0, "_transactions should be empty after rollback");
-        assert_eq!(ctx_count(&conn), 0, "_cairn_tx_context should be empty after rollback");
+        assert_eq!(
+            txn_count(&conn),
+            0,
+            "_transactions should be empty after rollback"
+        );
+        assert_eq!(
+            ctx_count(&conn),
+            0,
+            "_cairn_tx_context should be empty after rollback"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -273,14 +290,8 @@ mod tests {
         let (_txn_id, ts) = begin_write(&conn).unwrap();
         commit(&conn).unwrap();
 
-        assert!(
-            ts > 1_577_836_800_000,
-            "timestamp {ts} before 2020-01-01"
-        );
-        assert!(
-            ts < 4_102_444_800_000,
-            "timestamp {ts} after 2100-01-01"
-        );
+        assert!(ts > 1_577_836_800_000, "timestamp {ts} before 2020-01-01");
+        assert!(ts < 4_102_444_800_000, "timestamp {ts} after 2100-01-01");
     }
 
     // ------------------------------------------------------------------
@@ -294,14 +305,18 @@ mod tests {
         commit(&conn).unwrap();
 
         let (stored_id, stored_ts): (i64, i64) = conn
-            .query_row(
-                "SELECT txn_id, timestamp FROM _transactions",
-                [],
-                |r| Ok((r.get(0)?, r.get(1)?)),
-            )
+            .query_row("SELECT txn_id, timestamp FROM _transactions", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
             .unwrap();
-        assert_eq!(stored_id, txn_id, "returned txn_id must match _transactions row");
-        assert_eq!(stored_ts, ts, "returned timestamp must match _transactions row");
+        assert_eq!(
+            stored_id, txn_id,
+            "returned txn_id must match _transactions row"
+        );
+        assert_eq!(
+            stored_ts, ts,
+            "returned timestamp must match _transactions row"
+        );
     }
 
     // ------------------------------------------------------------------

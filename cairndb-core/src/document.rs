@@ -113,9 +113,7 @@ fn epoch_ms_to_iso8601(epoch_ms: i64) -> String {
     let days = secs.div_euclid(86400);
     let (year, month, day) = civil_from_days(days);
 
-    format!(
-        "{year:04}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}.{ms:03}Z",
-    )
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}.{ms:03}Z",)
 }
 
 /// Converts days-since-Unix-epoch (1970-01-01) to a `(year, month, day)` triple.
@@ -262,7 +260,10 @@ mod tests {
     #[test]
     fn epoch_known_date_2024() {
         // 2024-01-01T00:00:00.000Z = 1704067200000 ms since epoch
-        assert_eq!(epoch_ms_to_iso8601(1_704_067_200_000), "2024-01-01T00:00:00.000Z");
+        assert_eq!(
+            epoch_ms_to_iso8601(1_704_067_200_000),
+            "2024-01-01T00:00:00.000Z"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -321,8 +322,7 @@ mod tests {
         );
 
         let serialized = serde_json::to_string(&original).expect("serialize failed");
-        let deserialized: Document =
-            serde_json::from_str(&serialized).expect("deserialize failed");
+        let deserialized: Document = serde_json::from_str(&serialized).expect("deserialize failed");
 
         assert_eq!(deserialized.id(), original.id());
         assert_eq!(deserialized.data(), original.data());

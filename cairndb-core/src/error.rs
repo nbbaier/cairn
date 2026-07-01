@@ -64,14 +64,19 @@ mod tests {
     fn display_messages_non_empty() {
         let errors: Vec<Error> = vec![
             Error::Sqlite(rusqlite::Error::QueryReturnedNoRows),
-            serde_json::from_str::<serde_json::Value>("!").unwrap_err().into(),
+            serde_json::from_str::<serde_json::Value>("!")
+                .unwrap_err()
+                .into(),
             Error::InvalidPath("x".to_string()),
             Error::InvalidTimestamp("x".to_string()),
             Error::TableNotFound("x".to_string()),
             Error::DocumentNotFound("x".to_string()),
         ];
         for e in &errors {
-            assert!(!e.to_string().is_empty(), "Error message was empty for: {e:?}");
+            assert!(
+                !e.to_string().is_empty(),
+                "Error message was empty for: {e:?}"
+            );
         }
     }
 
