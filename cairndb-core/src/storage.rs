@@ -169,12 +169,7 @@ pub(crate) fn insert(
 /// `patch` must be a JSON object. Non-object values (arrays, scalars, null) are
 /// rejected with `Error::Json` because `json_patch` would produce non-object `_data`,
 /// which would cause an `unreachable!` panic during document materialization.
-pub(crate) fn update(
-    conn: &Connection,
-    table: &str,
-    id: &str,
-    patch: Value,
-) -> Result<Document> {
+pub(crate) fn update(conn: &Connection, table: &str, id: &str, patch: Value) -> Result<Document> {
     schema::validate_table_name(table)?;
 
     // Validate: patch must be a JSON object.
@@ -370,7 +365,9 @@ pub(crate) fn query_all(conn: &Connection, table: &str) -> Result<QueryResult> {
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
+            docs.push(Document::new_history(
+                id, map, valid_from, txn_id, op, valid_to,
+            ));
         }
     }
 
@@ -426,7 +423,9 @@ pub(crate) fn query_at(conn: &Connection, table: &str, timestamp_iso: &str) -> R
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
+            docs.push(Document::new_history(
+                id, map, valid_from, txn_id, op, valid_to,
+            ));
         }
     }
 
@@ -518,7 +517,9 @@ pub(crate) fn query_between(
                 Value::Object(m) => m,
                 _ => unreachable!("stored data is always a JSON object"),
             };
-            docs.push(Document::new_history(id, map, valid_from, txn_id, op, valid_to));
+            docs.push(Document::new_history(
+                id, map, valid_from, txn_id, op, valid_to,
+            ));
         }
     }
 
@@ -569,7 +570,11 @@ pub(crate) fn iso8601_to_epoch_ms(s: &str) -> Result<i64> {
     }
     let b = s.as_bytes();
     // Validate separator positions
-    if b[4] != b'-' || b[7] != b'-' || b[10] != b'T' || b[13] != b':' || b[16] != b':'
+    if b[4] != b'-'
+        || b[7] != b'-'
+        || b[10] != b'T'
+        || b[13] != b':'
+        || b[16] != b':'
         || b[19] != b'.'
     {
         return Err(Error::InvalidTimestamp(format!(
@@ -577,20 +582,15 @@ pub(crate) fn iso8601_to_epoch_ms(s: &str) -> Result<i64> {
         )));
     }
 
-    let year  = parse_digits_i64(&b[0..4])?  as i32;
-    let month = parse_digits_i64(&b[5..7])?  as u32;
-    let day   = parse_digits_i64(&b[8..10])? as u32;
-    let hour  = parse_digits_i64(&b[11..13])?;
-    let min   = parse_digits_i64(&b[14..16])?;
-    let sec   = parse_digits_i64(&b[17..19])?;
-    let ms    = parse_digits_i64(&b[20..23])?;
+    let year = parse_digits_i64(&b[0..4])? as i32;
+    let month = parse_digits_i64(&b[5..7])? as u32;
+    let day = parse_digits_i64(&b[8..10])? as u32;
+    let hour = parse_digits_i64(&b[11..13])?;
+    let min = parse_digits_i64(&b[14..16])?;
+    let sec = parse_digits_i64(&b[17..19])?;
+    let ms = parse_digits_i64(&b[20..23])?;
 
-    if !(1..=12).contains(&month)
-        || day < 1
-        || hour > 23
-        || min > 59
-        || sec > 59
-    {
+    if !(1..=12).contains(&month) || day < 1 || hour > 23 || min > 59 || sec > 59 {
         return Err(Error::InvalidTimestamp(format!(
             "out-of-range field in: {s:?}"
         )));
@@ -767,7 +767,10 @@ mod tests {
         let doc1 = insert(&conn, &mut cache, "events", json!({"a": 1})).unwrap();
         let doc2 = insert(&conn, &mut cache, "events", json!({"b": 2})).unwrap();
         assert!(doc1.txn_id() > 0, "txn_id should be positive");
-        assert!(doc2.txn_id() >= doc1.txn_id(), "txn_ids should be non-decreasing");
+        assert!(
+            doc2.txn_id() >= doc1.txn_id(),
+            "txn_ids should be non-decreasing"
+        );
     }
 
     /// VAL-INS-005: table auto-created on first insert (schema-last)
@@ -776,7 +779,10 @@ mod tests {
         let (conn, mut cache) = open_conn();
         // Table "newtable" does not exist yet
         let result = insert(&conn, &mut cache, "newtable", json!({"x": 1}));
-        assert!(result.is_ok(), "insert should auto-create table: {result:?}");
+        assert!(
+            result.is_ok(),
+            "insert should auto-create table: {result:?}"
+        );
         // Subsequent query should work
         let qr = query(&conn, "newtable").unwrap();
         assert_eq!(qr.len(), 1);
@@ -872,7 +878,11 @@ mod tests {
         .unwrap();
         let updated = update(&conn, "events", doc.id(), json!({"name": "new"})).unwrap();
         assert_eq!(updated.get("name"), Some(&json!("new")));
-        assert_eq!(updated.get("count"), Some(&json!(1)), "count should be preserved");
+        assert_eq!(
+            updated.get("count"),
+            Some(&json!(1)),
+            "count should be preserved"
+        );
     }
 
     /// VAL-UPD-002: updated document has new system_time and txn_id
@@ -881,7 +891,10 @@ mod tests {
         let (conn, mut cache) = open_conn();
         let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
         let updated = update(&conn, "events", doc.id(), json!({"x": 2})).unwrap();
-        assert!(updated.txn_id() >= doc.txn_id(), "txn_id should be non-decreasing");
+        assert!(
+            updated.txn_id() >= doc.txn_id(),
+            "txn_id should be non-decreasing"
+        );
     }
 
     /// VAL-UPD-003: original version preserved in history after update
@@ -909,7 +922,10 @@ mod tests {
             )
             .unwrap();
         assert_eq!(op, "UPDATE");
-        assert!(valid_to > 0, "_valid_to should be a positive epoch-ms value");
+        assert!(
+            valid_to > 0,
+            "_valid_to should be a positive epoch-ms value"
+        );
     }
 
     /// VAL-UPD-005: update on non-existent document returns DocumentNotFound
@@ -933,20 +949,17 @@ mod tests {
         update(&conn, "events", doc.id(), json!({"v": 1})).unwrap();
         update(&conn, "events", doc.id(), json!({"v": 2})).unwrap();
         let hist_count = history_count(&conn, "events", doc.id());
-        assert_eq!(hist_count, 2, "should have 2 history entries after 2 updates");
+        assert_eq!(
+            hist_count, 2,
+            "should have 2 history entries after 2 updates"
+        );
     }
 
     /// VAL-UPD-007: partial patch preserves existing keys
     #[test]
     fn partial_patch_preserves_existing_keys() {
         let (conn, mut cache) = open_conn();
-        let doc = insert(
-            &conn,
-            &mut cache,
-            "events",
-            json!({"a": 1, "b": 2, "c": 3}),
-        )
-        .unwrap();
+        let doc = insert(&conn, &mut cache, "events", json!({"a": 1, "b": 2, "c": 3})).unwrap();
         let updated = update(&conn, "events", doc.id(), json!({"b": 20})).unwrap();
         assert_eq!(updated.get("a"), Some(&json!(1)));
         assert_eq!(updated.get("b"), Some(&json!(20)));
@@ -960,7 +973,10 @@ mod tests {
         let doc = insert(&conn, &mut cache, "events", json!({"a": 1, "b": 2})).unwrap();
         let updated = update(&conn, "events", doc.id(), json!({"b": null})).unwrap();
         assert_eq!(updated.get("a"), Some(&json!(1)));
-        assert!(updated.get("b").is_none(), "key 'b' should be removed after null patch");
+        assert!(
+            updated.get("b").is_none(),
+            "key 'b' should be removed after null patch"
+        );
     }
 
     /// VAL-BOUND-003: update with empty patch returns Ok with unchanged data
@@ -1064,9 +1080,7 @@ mod tests {
 
         let ops: Vec<String> = {
             let mut stmt = conn
-                .prepare(
-                    "SELECT _op FROM _events_history WHERE _id = ?1 ORDER BY _valid_from",
-                )
+                .prepare("SELECT _op FROM _events_history WHERE _id = ?1 ORDER BY _valid_from")
                 .unwrap();
             stmt.query_map(rusqlite::params![doc.id()], |row| row.get(0))
                 .unwrap()
@@ -1283,7 +1297,10 @@ mod tests {
         delete(&conn, "events", doc.id()).unwrap();
 
         let result = query(&conn, "events");
-        assert!(result.is_ok(), "query should return Ok, not error: {result:?}");
+        assert!(
+            result.is_ok(),
+            "query should return Ok, not error: {result:?}"
+        );
         assert!(result.unwrap().is_empty());
     }
 
@@ -1406,7 +1423,11 @@ mod tests {
 
         let qr = query_all(&conn, "events").unwrap();
         // 2 history rows (UPDATE + DELETE) + 0 current = 2
-        assert_eq!(qr.len(), 2, "should have 2 versioned entries after lifecycle");
+        assert_eq!(
+            qr.len(),
+            2,
+            "should have 2 versioned entries after lifecycle"
+        );
 
         // Check _op values are present
         let ops: Vec<String> = qr
@@ -1414,8 +1435,14 @@ mod tests {
             .iter()
             .filter_map(|d| d.op().map(|s| s.to_string()))
             .collect();
-        assert!(ops.contains(&"UPDATE".to_string()), "_op=UPDATE should be present");
-        assert!(ops.contains(&"DELETE".to_string()), "_op=DELETE should be present");
+        assert!(
+            ops.contains(&"UPDATE".to_string()),
+            "_op=UPDATE should be present"
+        );
+        assert!(
+            ops.contains(&"DELETE".to_string()),
+            "_op=DELETE should be present"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -1429,7 +1456,10 @@ mod tests {
         schema::ensure_table(&conn, &mut cache, "events").unwrap();
 
         let qr = query_at(&conn, "events", "1970-01-01T00:00:00.000Z").unwrap();
-        assert!(qr.is_empty(), "query_at before any data should return empty");
+        assert!(
+            qr.is_empty(),
+            "query_at before any data should return empty"
+        );
     }
 
     /// VAL-QRY-006: query_at() returns state at specific timestamp
@@ -1486,7 +1516,10 @@ mod tests {
         // query_at at the exact insert timestamp should include the document
         let qr = query_at(&conn, "events", &t_insert).unwrap();
         let found = qr.documents().iter().any(|d| d.id() == doc.id());
-        assert!(found, "document should be visible at its exact insert timestamp (inclusive boundary)");
+        assert!(
+            found,
+            "document should be visible at its exact insert timestamp (inclusive boundary)"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -1499,8 +1532,17 @@ mod tests {
         let (conn, mut cache) = open_conn();
         insert(&conn, &mut cache, "events", json!({"v": 1})).unwrap();
 
-        let qr = query_between(&conn, "events", "1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.001Z").unwrap();
-        assert!(qr.is_empty(), "query_between entirely before data should return empty");
+        let qr = query_between(
+            &conn,
+            "events",
+            "1970-01-01T00:00:00.000Z",
+            "1970-01-01T00:00:00.001Z",
+        )
+        .unwrap();
+        assert!(
+            qr.is_empty(),
+            "query_between entirely before data should return empty"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -1513,10 +1555,7 @@ mod tests {
         let (conn, mut cache) = open_conn();
         let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
         let result = update(&conn, "events", doc.id(), json!([1, 2, 3]));
-        assert!(
-            result.is_err(),
-            "array patch should return Err, got Ok"
-        );
+        assert!(result.is_err(), "array patch should return Err, got Ok");
     }
 
     /// update() with a scalar (integer) patch returns Err
@@ -1525,10 +1564,7 @@ mod tests {
         let (conn, mut cache) = open_conn();
         let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
         let result = update(&conn, "events", doc.id(), json!(42));
-        assert!(
-            result.is_err(),
-            "scalar patch should return Err, got Ok"
-        );
+        assert!(result.is_err(), "scalar patch should return Err, got Ok");
     }
 
     /// update() with a null patch returns Err
@@ -1537,10 +1573,7 @@ mod tests {
         let (conn, mut cache) = open_conn();
         let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
         let result = update(&conn, "events", doc.id(), json!(null));
-        assert!(
-            result.is_err(),
-            "null patch should return Err, got Ok"
-        );
+        assert!(result.is_err(), "null patch should return Err, got Ok");
     }
 
     /// update() with a string patch returns Err
@@ -1549,10 +1582,7 @@ mod tests {
         let (conn, mut cache) = open_conn();
         let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
         let result = update(&conn, "events", doc.id(), json!("a string"));
-        assert!(
-            result.is_err(),
-            "string patch should return Err, got Ok"
-        );
+        assert!(result.is_err(), "string patch should return Err, got Ok");
     }
 
     // ------------------------------------------------------------------
@@ -1642,7 +1672,10 @@ mod tests {
     #[test]
     fn iso8601_accepts_feb_29_year_2000() {
         let result = iso8601_to_epoch_ms("2000-02-29T00:00:00.000Z");
-        assert!(result.is_ok(), "2000-02-29 should be valid (year 2000 is a leap year): {result:?}");
+        assert!(
+            result.is_ok(),
+            "2000-02-29 should be valid (year 2000 is a leap year): {result:?}"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -1672,7 +1705,7 @@ mod tests {
 
         // from is after to
         let from = "2099-01-01T00:00:00.000Z";
-        let to   = "2024-01-01T00:00:00.000Z";
+        let to = "2024-01-01T00:00:00.000Z";
         let qr = query_between(&conn, "events", from, to).unwrap();
         assert!(
             qr.is_empty(),
@@ -1696,7 +1729,11 @@ mod tests {
         // query_between(t1, far_future) should return both versions
         // (1 history: v0 active from t1 to t2) + (1 current: v1)
         let qr = query_between(&conn, "events", &t1, "2099-01-01T00:00:00.000Z").unwrap();
-        assert_eq!(qr.len(), 2, "should find 2 versions: the history version and the current version");
+        assert_eq!(
+            qr.len(),
+            2,
+            "should find 2 versions: the history version and the current version"
+        );
 
         // Verify both v0 and v1 data are present
         let values: Vec<&str> = qr

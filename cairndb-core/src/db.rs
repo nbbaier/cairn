@@ -24,9 +24,9 @@ impl Database {
             }
         }
 
-        let path_str = path.to_str().ok_or_else(|| {
-            Error::InvalidPath(format!("{}", path.display()))
-        })?;
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| Error::InvalidPath(format!("{}", path.display())))?;
         let conn = rusqlite::Connection::open(path_str)?;
         let db = Self {
             conn: Mutex::new(conn),
@@ -200,7 +200,12 @@ mod tests {
         let db = Database::open_in_memory().unwrap();
         let conn = db.conn.lock().unwrap();
 
-        for table in &["_transactions", "_schema_registry", "_erasure_log", "_cairn_tx_context"] {
+        for table in &[
+            "_transactions",
+            "_schema_registry",
+            "_erasure_log",
+            "_cairn_tx_context",
+        ] {
             let count: i64 = conn
                 .query_row(
                     &format!(
@@ -268,7 +273,10 @@ mod tests {
     fn create_table_idempotent_via_database() {
         let db = Database::open_in_memory().unwrap();
         db.create_table("events").unwrap();
-        assert!(db.create_table("events").is_ok(), "second create_table should not error");
+        assert!(
+            db.create_table("events").is_ok(),
+            "second create_table should not error"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -285,7 +293,10 @@ mod tests {
         assert!(db.create_table("_private").is_ok());
 
         // Invalid names
-        assert!(db.create_table("").is_err(), "empty name should be rejected");
+        assert!(
+            db.create_table("").is_err(),
+            "empty name should be rejected"
+        );
         assert!(db.create_table("with space").is_err());
         assert!(db.create_table("sql'inject").is_err());
         assert!(db.create_table("1bad").is_err());
@@ -320,7 +331,9 @@ mod tests {
     #[test]
     fn db_insert_data_matches_input() {
         let db = Database::open_in_memory().unwrap();
-        let doc = db.insert("events", json!({"name": "Alice", "age": 30})).unwrap();
+        let doc = db
+            .insert("events", json!({"name": "Alice", "age": 30}))
+            .unwrap();
         assert_eq!(doc.get("name"), Some(&json!("Alice")));
         assert_eq!(doc.get("age"), Some(&json!(30)));
     }
@@ -404,8 +417,12 @@ mod tests {
     #[test]
     fn db_update_patches_data() {
         let db = Database::open_in_memory().unwrap();
-        let doc = db.insert("events", json!({"name": "old", "count": 1})).unwrap();
-        let updated = db.update("events", doc.id(), json!({"name": "new"})).unwrap();
+        let doc = db
+            .insert("events", json!({"name": "old", "count": 1}))
+            .unwrap();
+        let updated = db
+            .update("events", doc.id(), json!({"name": "new"}))
+            .unwrap();
         assert_eq!(updated.get("name"), Some(&json!("new")));
         assert_eq!(updated.get("count"), Some(&json!(1)));
     }
@@ -472,7 +489,9 @@ mod tests {
     #[test]
     fn db_partial_patch_preserves_keys() {
         let db = Database::open_in_memory().unwrap();
-        let doc = db.insert("events", json!({"a": 1, "b": 2, "c": 3})).unwrap();
+        let doc = db
+            .insert("events", json!({"a": 1, "b": 2, "c": 3}))
+            .unwrap();
         let updated = db.update("events", doc.id(), json!({"b": 20})).unwrap();
         assert_eq!(updated.get("a"), Some(&json!(1)));
         assert_eq!(updated.get("b"), Some(&json!(20)));
@@ -762,7 +781,11 @@ mod tests {
 
         // query_all() shows both history entries
         let all = db.query_all("events").unwrap();
-        assert_eq!(all.len(), 2, "should have 2 versioned entries (UPDATE + DELETE)");
+        assert_eq!(
+            all.len(),
+            2,
+            "should have 2 versioned entries (UPDATE + DELETE)"
+        );
 
         // Verify _op sequence
         let ops: Vec<String> = all
@@ -770,11 +793,20 @@ mod tests {
             .iter()
             .filter_map(|d| d.op().map(String::from))
             .collect();
-        assert!(ops.contains(&"UPDATE".to_string()), "_op=UPDATE must be present");
-        assert!(ops.contains(&"DELETE".to_string()), "_op=DELETE must be present");
+        assert!(
+            ops.contains(&"UPDATE".to_string()),
+            "_op=UPDATE must be present"
+        );
+        assert!(
+            ops.contains(&"DELETE".to_string()),
+            "_op=DELETE must be present"
+        );
 
         // txn_ids are strictly increasing (insert < update)
-        assert!(updated.txn_id() > doc.txn_id(), "update txn_id must be > insert txn_id");
+        assert!(
+            updated.txn_id() > doc.txn_id(),
+            "update txn_id must be > insert txn_id"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -790,7 +822,9 @@ mod tests {
         let doc = db.insert("events", json!({"v": "original"})).unwrap();
         let t1 = doc.system_time();
         sleep(Duration::from_millis(10));
-        let updated = db.update("events", doc.id(), json!({"v": "updated"})).unwrap();
+        let updated = db
+            .update("events", doc.id(), json!({"v": "updated"}))
+            .unwrap();
         let t2 = updated.system_time();
 
         // Before T1 → empty
@@ -884,7 +918,9 @@ mod tests {
             assert!(
                 docs[i].txn_id() > docs[i - 1].txn_id(),
                 "txn_id[{i}]={} should be > txn_id[{}]={}",
-                docs[i].txn_id(), i - 1, docs[i - 1].txn_id()
+                docs[i].txn_id(),
+                i - 1,
+                docs[i - 1].txn_id()
             );
         }
     }
@@ -989,7 +1025,10 @@ mod tests {
         // get() returns correct version per ID
         let d1_fetched = db.get("events", d1.id()).unwrap();
         assert_eq!(d1_fetched.get("n"), Some(&json!(10)));
-        assert!(matches!(db.get("events", d2.id()), Err(Error::DocumentNotFound(_))));
+        assert!(matches!(
+            db.get("events", d2.id()),
+            Err(Error::DocumentNotFound(_))
+        ));
         let d3_fetched = db.get("events", d3.id()).unwrap();
         assert_eq!(d3_fetched.get("n"), Some(&json!(3)));
     }
@@ -1024,7 +1063,10 @@ mod tests {
             fetched.get("nested"),
             Some(&json!({"level2": {"level3": [1, 2, 3, {"deep": true}]}}))
         );
-        assert_eq!(fetched.get("unicode"), Some(&json!("こんにちは 🦀 Ünïcödé")));
+        assert_eq!(
+            fetched.get("unicode"),
+            Some(&json!("こんにちは 🦀 Ünïcödé"))
+        );
         assert_eq!(fetched.get("null_val"), Some(&json!(null)));
         assert_eq!(fetched.get("empty_obj"), Some(&json!({})));
         assert_eq!(fetched.get("empty_arr"), Some(&json!([])));
@@ -1060,8 +1102,7 @@ mod tests {
         assert_eq!(docs.len(), 4);
 
         // All IDs are unique
-        let ids: std::collections::HashSet<&str> =
-            docs.iter().map(|d| d.id()).collect();
+        let ids: std::collections::HashSet<&str> = docs.iter().map(|d| d.id()).collect();
         assert_eq!(ids.len(), 4, "all IDs should be unique");
 
         // Final count in DB is 4
@@ -1081,7 +1122,9 @@ mod tests {
         let doc = db.insert("events", json!({"x": 1})).unwrap();
 
         // These should fail but not corrupt
-        assert!(db.update("events", "nonexistent-id", json!({"x": 2})).is_err());
+        assert!(db
+            .update("events", "nonexistent-id", json!({"x": 2}))
+            .is_err());
         assert!(db.delete("events", "nonexistent-id").is_err());
         assert!(db.get("events", "nonexistent-id").is_err());
 
@@ -1108,14 +1151,19 @@ mod tests {
         let d3 = db.insert("events", json!({"name": "D3"})).unwrap();
 
         // Give D1 and D2 some history
-        db.update("events", d1.id(), json!({"name": "D1_v2"})).unwrap();
-        db.update("events", d2.id(), json!({"name": "D2_v2"})).unwrap();
+        db.update("events", d1.id(), json!({"name": "D1_v2"}))
+            .unwrap();
+        db.update("events", d2.id(), json!({"name": "D2_v2"}))
+            .unwrap();
 
         // Erase only D2
         db.erase("events", d2.id()).unwrap();
 
         // D2 completely gone
-        assert!(matches!(db.get("events", d2.id()), Err(Error::DocumentNotFound(_))));
+        assert!(matches!(
+            db.get("events", d2.id()),
+            Err(Error::DocumentNotFound(_))
+        ));
         let all = db.query_all("events").unwrap();
         assert!(
             all.documents().iter().all(|d| d.id() != d2.id()),
@@ -1132,7 +1180,11 @@ mod tests {
             .into_iter()
             .filter(|d| d.id() == d1.id())
             .collect();
-        assert_eq!(d1_all.len(), 2, "D1 should have 1 history + 1 current = 2 entries");
+        assert_eq!(
+            d1_all.len(),
+            2,
+            "D1 should have 1 history + 1 current = 2 entries"
+        );
 
         // D3 fully intact (no history, just current)
         let d3_current = db.get("events", d3.id()).unwrap();
@@ -1172,7 +1224,8 @@ mod tests {
         // All 3 versions visible: 2 history (v=0 UPDATE, v=1 UPDATE) + 1 current (v=2)
         let all = db.query_all("log").unwrap();
         assert_eq!(
-            all.len(), 3,
+            all.len(),
+            3,
             "should have 3 total entries (2 history + 1 current), got {}",
             all.len()
         );
@@ -1305,7 +1358,9 @@ mod tests {
         let doc = db.insert("events", json!({"v": "original"})).unwrap();
         let t1 = doc.system_time();
         sleep(Duration::from_millis(10));
-        let updated = db.update("events", doc.id(), json!({"v": "updated"})).unwrap();
+        let updated = db
+            .update("events", doc.id(), json!({"v": "updated"}))
+            .unwrap();
         let t2 = updated.system_time();
 
         let at_t1 = db.query_at("events", &t1).unwrap();
@@ -1354,7 +1409,11 @@ mod tests {
         let qr = db
             .query_between("events", &t1, "2099-01-01T00:00:00.000Z")
             .unwrap();
-        assert_eq!(qr.len(), 2, "should include both v0 (history) and v1 (current)");
+        assert_eq!(
+            qr.len(),
+            2,
+            "should include both v0 (history) and v1 (current)"
+        );
 
         let values: Vec<&str> = qr
             .documents()
@@ -1372,7 +1431,11 @@ mod tests {
         db.insert("events", json!({"v": 1})).unwrap();
 
         let qr = db
-            .query_between("events", "1970-01-01T00:00:00.000Z", "1970-01-01T00:00:00.001Z")
+            .query_between(
+                "events",
+                "1970-01-01T00:00:00.000Z",
+                "1970-01-01T00:00:00.001Z",
+            )
             .unwrap();
         assert!(qr.is_empty());
     }
@@ -1386,6 +1449,9 @@ mod tests {
 
         let qr = db.query_at("events", &t_insert).unwrap();
         let found = qr.documents().iter().any(|d| d.id() == doc.id());
-        assert!(found, "document should be visible at its exact insert timestamp");
+        assert!(
+            found,
+            "document should be visible at its exact insert timestamp"
+        );
     }
 }

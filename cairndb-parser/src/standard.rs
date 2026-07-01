@@ -7,8 +7,7 @@ use crate::ir::Statement;
 
 pub(crate) fn parse_standard(sql: &str) -> Result<Statement> {
     let dialect = SQLiteDialect {};
-    let statements = Parser::parse_sql(&dialect, sql)
-        .map_err(|e| Error::Parse(e.to_string()))?;
+    let statements = Parser::parse_sql(&dialect, sql).map_err(|e| Error::Parse(e.to_string()))?;
 
     if statements.len() != 1 {
         return Err(Error::Parse(format!(
@@ -143,8 +142,7 @@ mod tests {
 
     #[test]
     fn multiple_statements_rejected() {
-        let err =
-            parse_standard("CREATE TABLE a; CREATE TABLE b").unwrap_err();
+        let err = parse_standard("CREATE TABLE a; CREATE TABLE b").unwrap_err();
         assert!(matches!(err, Error::Parse(_)));
         assert!(err.to_string().contains("exactly one statement"));
     }

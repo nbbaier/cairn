@@ -61,12 +61,7 @@ impl Database {
         Ok(self.inner.query_at(table, timestamp_iso)?)
     }
 
-    pub fn query_between(
-        &self,
-        table: &str,
-        from_iso: &str,
-        to_iso: &str,
-    ) -> Result<QueryResult> {
+    pub fn query_between(&self, table: &str, from_iso: &str, to_iso: &str) -> Result<QueryResult> {
         Ok(self.inner.query_between(table, from_iso, to_iso)?)
     }
 

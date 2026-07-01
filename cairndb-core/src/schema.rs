@@ -296,7 +296,10 @@ mod tests {
         ensure_table(&conn, &mut cache, "events").unwrap();
         // Second call must not error
         let result = ensure_table(&conn, &mut cache, "events");
-        assert!(result.is_ok(), "second ensure_table call failed: {result:?}");
+        assert!(
+            result.is_ok(),
+            "second ensure_table call failed: {result:?}"
+        );
         // Table still exists
         let count: i64 = conn
             .query_row(
@@ -381,7 +384,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(valid_to, 1000, "_valid_to should match tx context timestamp");
+        assert_eq!(
+            valid_to, 1000,
+            "_valid_to should match tx context timestamp"
+        );
     }
 
     // ------------------------------------------------------------------
@@ -407,11 +413,8 @@ mod tests {
 
         // Delete the row with a new tx context
         setup_tx_context(&conn, 2, 2000);
-        conn.execute(
-            "DELETE FROM _events_current WHERE _id='doc1'",
-            [],
-        )
-        .unwrap();
+        conn.execute("DELETE FROM _events_current WHERE _id='doc1'", [])
+            .unwrap();
 
         // History should have one entry with _op = 'DELETE'
         let count: i64 = conn
@@ -431,7 +434,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(valid_to, 2000, "_valid_to should match tx context timestamp");
+        assert_eq!(
+            valid_to, 2000,
+            "_valid_to should match tx context timestamp"
+        );
     }
 
     // ------------------------------------------------------------------
