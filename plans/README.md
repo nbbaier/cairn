@@ -12,7 +12,7 @@ your row when done.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | CI verification baseline (fmt, clippy, test) | P1 | S | — | DONE (executed 2026-07-01 on branch feat/ci-baseline) |
-| 002  | Add CLAUDE.md with repo conventions | P1 | S | — | TODO |
+| 002  | Add CLAUDE.md with repo conventions | P1 | S | — | DONE (executed 2026-07-03 on branch feat/claude-md) |
 | 003  | Remove panic paths from cairndb-core | P2 | M | 001 | TODO |
 | 004  | Dedupe materialization + read-path overhead in storage.rs | P2 | M | 003 | TODO |
 | 005  | SELECT + FOR SYSTEM_TIME parsed and dispatched end-to-end | P1 | L | 001 | TODO |
