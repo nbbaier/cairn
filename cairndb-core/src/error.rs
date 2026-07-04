@@ -28,6 +28,11 @@ pub enum Error {
     /// A table name failed validation (empty, starts with a digit, contains special characters).
     #[error("invalid table name: {0}")]
     InvalidTableName(String),
+
+    /// Stored document data violated a storage invariant (e.g. `_data` is not a JSON object).
+    /// Indicates external modification or corruption of the database file.
+    #[error("corrupted data: {0}")]
+    CorruptedData(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -58,6 +63,9 @@ mod tests {
 
         let doc_nf = Error::DocumentNotFound("abc-123".to_string());
         assert!(matches!(doc_nf, Error::DocumentNotFound(_)));
+
+        let corrupted = Error::CorruptedData("bad data".to_string());
+        assert!(matches!(corrupted, Error::CorruptedData(_)));
     }
 
     #[test]
@@ -71,6 +79,7 @@ mod tests {
             Error::InvalidTimestamp("x".to_string()),
             Error::TableNotFound("x".to_string()),
             Error::DocumentNotFound("x".to_string()),
+            Error::CorruptedData("x".to_string()),
         ];
         for e in &errors {
             assert!(

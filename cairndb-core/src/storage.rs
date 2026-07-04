@@ -76,7 +76,11 @@ fn read_current_doc(conn: &Connection, table_name: &str, id: &str) -> Result<Doc
     let data_val: Value = serde_json::from_str(&data_str)?;
     let map = match data_val {
         Value::Object(m) => m,
-        _ => unreachable!("stored data is always a JSON object"),
+        _ => {
+            return Err(Error::CorruptedData(format!(
+                "document '{doc_id}' in table '{table_name}': _data is not a JSON object"
+            )))
+        }
     };
     Ok(Document::new(doc_id, map, valid_from, txn_id))
 }
@@ -104,7 +108,11 @@ fn read_all_current(conn: &Connection, table_name: &str) -> Result<Vec<Document>
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table_name}': _data is not a JSON object"
+                    )))
+                }
             };
             Ok(Document::new(id, map, valid_from, txn_id))
         })
@@ -168,13 +176,13 @@ pub(crate) fn insert(
 ///
 /// `patch` must be a JSON object. Non-object values (arrays, scalars, null) are
 /// rejected with `Error::Json` because `json_patch` would produce non-object `_data`,
-/// which would cause an `unreachable!` panic during document materialization.
+/// which would surface as `Error::CorruptedData` during document materialization.
 pub(crate) fn update(conn: &Connection, table: &str, id: &str, patch: Value) -> Result<Document> {
     schema::validate_table_name(table)?;
 
     // Validate: patch must be a JSON object.
     // Non-object patches (arrays, scalars, null) can produce non-object _data after
-    // json_patch, which would panic at the unreachable!() in materialization helpers.
+    // json_patch, which would surface as Error::CorruptedData in materialization helpers.
     let patch_map: Map<String, Value> = serde_json::from_value(patch)?;
 
     if !table_exists(conn, table)? {
@@ -363,7 +371,11 @@ pub(crate) fn query_all(conn: &Connection, table: &str) -> Result<QueryResult> {
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table}': _data is not a JSON object"
+                    )))
+                }
             };
             docs.push(Document::new_history(
                 id, map, valid_from, txn_id, op, valid_to,
@@ -421,7 +433,11 @@ pub(crate) fn query_at(conn: &Connection, table: &str, timestamp_iso: &str) -> R
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table}': _data is not a JSON object"
+                    )))
+                }
             };
             docs.push(Document::new_history(
                 id, map, valid_from, txn_id, op, valid_to,
@@ -452,7 +468,11 @@ pub(crate) fn query_at(conn: &Connection, table: &str, timestamp_iso: &str) -> R
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table}': _data is not a JSON object"
+                    )))
+                }
             };
             docs.push(Document::new(id, map, valid_from, txn_id));
         }
@@ -515,7 +535,11 @@ pub(crate) fn query_between(
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table}': _data is not a JSON object"
+                    )))
+                }
             };
             docs.push(Document::new_history(
                 id, map, valid_from, txn_id, op, valid_to,
@@ -546,7 +570,11 @@ pub(crate) fn query_between(
             let data_val: Value = serde_json::from_str(&data_str)?;
             let map = match data_val {
                 Value::Object(m) => m,
-                _ => unreachable!("stored data is always a JSON object"),
+                _ => {
+                    return Err(Error::CorruptedData(format!(
+                        "document '{id}' in table '{table}': _data is not a JSON object"
+                    )))
+                }
             };
             docs.push(Document::new(id, map, valid_from, txn_id));
         }
