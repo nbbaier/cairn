@@ -2,9 +2,10 @@ use crate::error::{Error, Result};
 use crate::ir::TemporalClause;
 
 /// Scans `sql` for a `FOR SYSTEM_TIME ...` clause (case-insensitive, outside
-/// single-quoted string literals), removes it, and returns the remaining SQL
-/// plus the extracted clause. sqlparser-rs cannot parse this non-standard
-/// clause, so it must be stripped first (decision #18).
+/// single-quoted string literals and `--`/`/* */` comments), removes it, and
+/// returns the remaining SQL plus the extracted clause. sqlparser-rs cannot
+/// parse this non-standard clause, so it must be stripped first (decision
+/// #18).
 pub(crate) fn strip_system_time(sql: &str) -> Result<(String, Option<TemporalClause>)> {
     let chars: Vec<char> = sql.chars().collect();
 
@@ -42,8 +43,9 @@ fn is_word_start(chars: &[char], i: usize) -> bool {
 
 /// Finds the first `FOR SYSTEM_TIME` keyword span (case-insensitive, word
 /// bounded, separated by any run of whitespace) outside single-quoted string
-/// literals. Returns the byte-equivalent char-index span `[start, end)`
-/// covering just the two keywords (not the clause body that follows).
+/// literals and `--`/`/* */` comments. Returns the byte-equivalent char-index
+/// span `[start, end)` covering just the two keywords (not the clause body
+/// that follows).
 fn find_keyword(chars: &[char]) -> Option<(usize, usize)> {
     let n = chars.len();
     let mut i = 0;
@@ -67,6 +69,23 @@ fn find_keyword(chars: &[char]) -> Option<(usize, usize)> {
         if c == '\'' {
             in_string = true;
             i += 1;
+            continue;
+        }
+
+        if c == '-' && i + 1 < n && chars[i + 1] == '-' {
+            i += 2;
+            while i < n && chars[i] != '\n' {
+                i += 1;
+            }
+            continue;
+        }
+
+        if c == '/' && i + 1 < n && chars[i + 1] == '*' {
+            i += 2;
+            while i + 1 < n && !(chars[i] == '*' && chars[i + 1] == '/') {
+                i += 1;
+            }
+            i = (i + 2).min(n);
             continue;
         }
 
@@ -259,6 +278,36 @@ mod tests {
             strip_system_time("SELECT * FROM t WHERE _id = 'FOR SYSTEM_TIME ALL'").unwrap();
         assert_eq!(sql, "SELECT * FROM t WHERE _id = 'FOR SYSTEM_TIME ALL'");
         assert_eq!(clause, None);
+    }
+
+    #[test]
+    fn keyword_inside_line_comment_is_ignored() {
+        let (sql, clause) =
+            strip_system_time("SELECT * FROM t -- FOR SYSTEM_TIME ALL\nWHERE _id = 'x'").unwrap();
+        assert_eq!(
+            sql,
+            "SELECT * FROM t -- FOR SYSTEM_TIME ALL\nWHERE _id = 'x'"
+        );
+        assert_eq!(clause, None);
+    }
+
+    #[test]
+    fn keyword_inside_block_comment_is_ignored() {
+        let (sql, clause) =
+            strip_system_time("SELECT * FROM t /* FOR SYSTEM_TIME ALL */ WHERE _id = 'x'").unwrap();
+        assert_eq!(
+            sql,
+            "SELECT * FROM t /* FOR SYSTEM_TIME ALL */ WHERE _id = 'x'"
+        );
+        assert_eq!(clause, None);
+    }
+
+    #[test]
+    fn real_clause_found_after_line_comment() {
+        let (sql, clause) =
+            strip_system_time("SELECT * FROM t -- a comment\nFOR SYSTEM_TIME ALL").unwrap();
+        assert_eq!(sql, "SELECT * FROM t -- a comment\n ");
+        assert_eq!(clause, Some(TemporalClause::All));
     }
 
     #[test]

@@ -120,6 +120,38 @@ fn parse_select(query: Box<ast::Query>, temporal: Option<TemporalClause>) -> Res
         return Err(Error::Unsupported("LIMIT is not supported".to_string()));
     }
 
+    if !query.limit_by.is_empty() {
+        return Err(Error::Unsupported("LIMIT BY is not supported".to_string()));
+    }
+
+    if query.offset.is_some() {
+        return Err(Error::Unsupported("OFFSET is not supported".to_string()));
+    }
+
+    if query.fetch.is_some() {
+        return Err(Error::Unsupported("FETCH is not supported".to_string()));
+    }
+
+    if !query.locks.is_empty() {
+        return Err(Error::Unsupported(
+            "FOR UPDATE/SHARE is not supported".to_string(),
+        ));
+    }
+
+    if query.for_clause.is_some() {
+        return Err(Error::Unsupported(
+            "FOR XML/JSON is not supported".to_string(),
+        ));
+    }
+
+    if query.settings.is_some() {
+        return Err(Error::Unsupported("SETTINGS is not supported".to_string()));
+    }
+
+    if query.format_clause.is_some() {
+        return Err(Error::Unsupported("FORMAT is not supported".to_string()));
+    }
+
     let select = match *query.body {
         ast::SetExpr::Select(select) => select,
         _ => {
@@ -133,11 +165,31 @@ fn parse_select(query: Box<ast::Query>, temporal: Option<TemporalClause>) -> Res
         return Err(Error::Unsupported("DISTINCT is not supported".to_string()));
     }
 
+    if select.top.is_some() {
+        return Err(Error::Unsupported("TOP is not supported".to_string()));
+    }
+
+    if select.into.is_some() {
+        return Err(Error::Unsupported(
+            "SELECT INTO is not supported".to_string(),
+        ));
+    }
+
     if select.projection.len() != 1 || !matches!(select.projection[0], ast::SelectItem::Wildcard(_))
     {
         return Err(Error::Unsupported(
             "projections are not supported (only SELECT * is supported)".to_string(),
         ));
+    }
+
+    if !select.lateral_views.is_empty() {
+        return Err(Error::Unsupported(
+            "LATERAL VIEW is not supported".to_string(),
+        ));
+    }
+
+    if select.prewhere.is_some() {
+        return Err(Error::Unsupported("PREWHERE is not supported".to_string()));
     }
 
     if select.from.len() != 1 {
@@ -185,8 +237,44 @@ fn parse_select(query: Box<ast::Query>, temporal: Option<TemporalClause>) -> Res
         return Err(Error::Unsupported("GROUP BY is not supported".to_string()));
     }
 
+    if !select.cluster_by.is_empty() {
+        return Err(Error::Unsupported(
+            "CLUSTER BY is not supported".to_string(),
+        ));
+    }
+
+    if !select.distribute_by.is_empty() {
+        return Err(Error::Unsupported(
+            "DISTRIBUTE BY is not supported".to_string(),
+        ));
+    }
+
+    if !select.sort_by.is_empty() {
+        return Err(Error::Unsupported("SORT BY is not supported".to_string()));
+    }
+
     if select.having.is_some() {
         return Err(Error::Unsupported("HAVING is not supported".to_string()));
+    }
+
+    if !select.named_window.is_empty() {
+        return Err(Error::Unsupported("WINDOW is not supported".to_string()));
+    }
+
+    if select.qualify.is_some() {
+        return Err(Error::Unsupported("QUALIFY is not supported".to_string()));
+    }
+
+    if select.value_table_mode.is_some() {
+        return Err(Error::Unsupported(
+            "SELECT AS VALUE/STRUCT is not supported".to_string(),
+        ));
+    }
+
+    if select.connect_by.is_some() {
+        return Err(Error::Unsupported(
+            "CONNECT BY is not supported".to_string(),
+        ));
     }
 
     let filter = match &select.selection {
@@ -419,6 +507,49 @@ mod tests {
         let err = parse_standard("SELECT * FROM events LIMIT 1", None).unwrap_err();
         assert!(matches!(err, Error::Unsupported(_)));
         assert!(err.to_string().contains("LIMIT"));
+    }
+
+    #[test]
+    fn select_offset_rejected() {
+        let err = parse_standard("SELECT * FROM events OFFSET 1 ROWS", None).unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("OFFSET"));
+    }
+
+    #[test]
+    fn select_fetch_rejected() {
+        let err = parse_standard("SELECT * FROM events FETCH FIRST 1 ROWS ONLY", None).unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("FETCH"));
+    }
+
+    #[test]
+    fn select_qualify_rejected() {
+        let err = parse_standard("SELECT * FROM events QUALIFY 1 = 0", None).unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("QUALIFY"));
+    }
+
+    #[test]
+    fn select_sort_by_rejected() {
+        let err = parse_standard("SELECT * FROM events SORT BY _id", None).unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("SORT BY"));
+    }
+
+    #[test]
+    fn select_cluster_by_rejected() {
+        let err = parse_standard("SELECT * FROM events CLUSTER BY _id", None).unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("CLUSTER BY"));
+    }
+
+    #[test]
+    fn select_window_rejected() {
+        let err = parse_standard("SELECT * FROM events WINDOW w AS (PARTITION BY _id)", None)
+            .unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(err.to_string().contains("WINDOW"));
     }
 
     #[test]
