@@ -21,7 +21,9 @@ impl Database {
     /// rolls back), so recovering the guard is safe — refusing forever would
     /// brick the Database for the whole process.
     fn conn(&self) -> std::sync::MutexGuard<'_, rusqlite::Connection> {
-        self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     fn tables(&self) -> std::sync::MutexGuard<'_, HashSet<String>> {
