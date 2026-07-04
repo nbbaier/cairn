@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::ir::Statement;
 use crate::standard;
+use crate::temporal;
 
 pub fn parse(sql: &str) -> Result<Statement> {
     let trimmed = sql.trim();
@@ -10,8 +11,10 @@ pub fn parse(sql: &str) -> Result<Statement> {
 
     // Detect statement type by first keyword.
     // Custom parsers (INSERT, ERASE) will be added here in future slices.
-    // For now, everything routes to sqlparser-rs.
-    standard::parse_standard(trimmed)
+    // For now, everything routes to sqlparser-rs, after stripping the
+    // non-standard `FOR SYSTEM_TIME` clause sqlparser-rs cannot parse.
+    let (stripped, temporal) = temporal::strip_system_time(trimmed)?;
+    standard::parse_standard(&stripped, temporal)
 }
 
 #[cfg(test)]

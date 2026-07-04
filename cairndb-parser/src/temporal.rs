@@ -14,8 +14,7 @@ pub(crate) fn strip_system_time(sql: &str) -> Result<(String, Option<TemporalCla
 
     let (clause, clause_end) = parse_clause_body(&chars, kw_end)?;
 
-    if find_keyword(&chars[..kw_start]).is_some() || find_keyword(&chars[clause_end..]).is_some()
-    {
+    if find_keyword(&chars[..kw_start]).is_some() || find_keyword(&chars[clause_end..]).is_some() {
         return Err(Error::Parse(
             "FOR SYSTEM_TIME specified more than once".to_string(),
         ));
@@ -98,7 +97,7 @@ fn try_match_word_ci(chars: &[char], i: usize, word: &str) -> Option<usize> {
         return None;
     }
     for (k, wc) in wchars.iter().enumerate() {
-        if chars[i + k].to_ascii_uppercase() != wc.to_ascii_uppercase() {
+        if !chars[i + k].eq_ignore_ascii_case(wc) {
             return None;
         }
     }
@@ -240,18 +239,16 @@ mod tests {
 
     #[test]
     fn case_insensitive_and_extra_whitespace() {
-        let (sql, clause) =
-            strip_system_time("select * from t   for   system_time   all").unwrap();
+        let (sql, clause) = strip_system_time("select * from t   for   system_time   all").unwrap();
         assert_eq!(sql, "select * from t    ");
         assert_eq!(clause, Some(TemporalClause::All));
     }
 
     #[test]
     fn escaped_quote_literal_does_not_confuse_scanner() {
-        let (sql, clause) = strip_system_time(
-            "SELECT * FROM t WHERE _id = 'it''s a test' FOR SYSTEM_TIME ALL",
-        )
-        .unwrap();
+        let (sql, clause) =
+            strip_system_time("SELECT * FROM t WHERE _id = 'it''s a test' FOR SYSTEM_TIME ALL")
+                .unwrap();
         assert_eq!(sql, "SELECT * FROM t WHERE _id = 'it''s a test'  ");
         assert_eq!(clause, Some(TemporalClause::All));
     }
@@ -273,10 +270,8 @@ mod tests {
 
     #[test]
     fn duplicated_clause_is_parse_error() {
-        let err = strip_system_time(
-            "SELECT * FROM t FOR SYSTEM_TIME ALL FOR SYSTEM_TIME ALL",
-        )
-        .unwrap_err();
+        let err = strip_system_time("SELECT * FROM t FOR SYSTEM_TIME ALL FOR SYSTEM_TIME ALL")
+            .unwrap_err();
         assert!(matches!(err, Error::Parse(_)));
         assert!(err.to_string().contains("more than once"));
     }
