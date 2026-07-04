@@ -1772,4 +1772,38 @@ mod tests {
         assert!(values.contains(&"v0"), "should include original v0");
         assert!(values.contains(&"v1"), "should include updated v1");
     }
+
+    // ------------------------------------------------------------------
+    // Corruption: non-object `_data` surfaces as Error::CorruptedData
+    // ------------------------------------------------------------------
+
+    /// If the database file is modified outside of cairndb such that a stored
+    /// `_data` value is no longer a JSON object, materialization must return
+    /// `Error::CorruptedData` rather than panicking.
+    #[test]
+    fn corrupted_non_object_data_returns_error() {
+        let (conn, mut cache) = open_conn();
+        let doc = insert(&conn, &mut cache, "events", json!({"x": 1})).unwrap();
+
+        // Drop the BEFORE UPDATE trigger so the corrupting UPDATE below doesn't
+        // fire the history-insert trigger (which reads `_cairn_tx_context` and
+        // would fail with a NOT NULL constraint error outside a write transaction).
+        // Only test code is allowed to do this; production code never touches triggers.
+        conn.execute("DROP TRIGGER _events_before_update", [])
+            .unwrap();
+        conn.execute(
+            "UPDATE _events_current SET _data = jsonb('[1,2,3]') WHERE _id = ?1",
+            rusqlite::params![doc.id()],
+        )
+        .unwrap();
+
+        assert!(matches!(
+            get(&conn, "events", doc.id()),
+            Err(Error::CorruptedData(_))
+        ));
+        assert!(matches!(
+            query(&conn, "events"),
+            Err(Error::CorruptedData(_))
+        ));
+    }
 }
