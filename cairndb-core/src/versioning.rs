@@ -45,7 +45,6 @@ use crate::error::{Error, Result};
 /// Returns `(txn_id, timestamp_ms)` where `txn_id` is the AUTOINCREMENT value
 /// from `_transactions` and `timestamp_ms` is the current wall-clock time in
 /// epoch milliseconds.
-#[allow(dead_code)] // used by storage module (next milestone)
 pub(crate) fn begin_write(conn: &Connection) -> Result<(i64, i64)> {
     let ts = now_epoch_ms()?;
     conn.execute_batch("BEGIN")?;
@@ -77,7 +76,6 @@ pub(crate) fn begin_write(conn: &Connection) -> Result<(i64, i64)> {
 /// 1. `COMMIT` — persists all DML performed since [`begin_write`].
 /// 2. `DELETE FROM _cairn_tx_context` — removes the context row now that
 ///    no triggers need it.
-#[allow(dead_code)] // used by storage module (next milestone)
 pub(crate) fn commit(conn: &Connection) -> Result<()> {
     conn.execute_batch("COMMIT")?;
     conn.execute("DELETE FROM _cairn_tx_context", [])?;
@@ -90,7 +88,6 @@ pub(crate) fn commit(conn: &Connection) -> Result<()> {
 /// `INSERT INTO _transactions` and `INSERT INTO _cairn_tx_context` rows, so
 /// no manual cleanup of `_cairn_tx_context` is required — it will be empty
 /// after the rollback completes (restored to the pre-`BEGIN` state).
-#[allow(dead_code)] // used by storage module (next milestone)
 pub(crate) fn rollback(conn: &Connection) -> Result<()> {
     conn.execute_batch("ROLLBACK")?;
     Ok(())
@@ -102,10 +99,11 @@ pub(crate) fn rollback(conn: &Connection) -> Result<()> {
 
 /// Returns the current wall-clock time as epoch milliseconds.
 fn now_epoch_ms() -> Result<i64> {
-    SystemTime::now()
+    let d = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .map_err(|e| Error::InvalidTimestamp(e.to_string()))
+        .map_err(|e| Error::InvalidTimestamp(e.to_string()))?;
+    i64::try_from(d.as_millis())
+        .map_err(|_| Error::InvalidTimestamp("system clock out of range".to_string()))
 }
 
 // ---------------------------------------------------------------------------

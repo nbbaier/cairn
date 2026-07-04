@@ -14,6 +14,24 @@ pub struct Database {
 }
 
 impl Database {
+    /// Locks the connection, recovering from poisoning.
+    ///
+    /// A poisoned mutex means another thread panicked while holding the lock.
+    /// SQLite's own transaction state is consistent (an interrupted transaction
+    /// rolls back), so recovering the guard is safe — refusing forever would
+    /// brick the Database for the whole process.
+    fn conn(&self) -> std::sync::MutexGuard<'_, rusqlite::Connection> {
+        self.conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn tables(&self) -> std::sync::MutexGuard<'_, HashSet<String>> {
+        self.known_tables
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
 
@@ -47,7 +65,7 @@ impl Database {
     }
 
     fn init(&self) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         conn.pragma_update(None, "journal_mode", "WAL")?;
         schema::init_system_tables(&conn)?;
         Ok(())
@@ -58,8 +76,8 @@ impl Database {
     /// This is idempotent — calling it a second time for the same name is a no-op.
     /// Tables are also auto-created on the first `insert` (schema-last pattern).
     pub fn create_table(&self, name: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
-        let mut cache = self.known_tables.lock().unwrap();
+        let conn = self.conn();
+        let mut cache = self.tables();
         schema::ensure_table(&conn, &mut cache, name)
     }
 
@@ -68,8 +86,8 @@ impl Database {
     /// `data` must be a JSON object; returns `Error::Json` for non-object inputs.
     /// The document is assigned a UUIDv7 `_id` and the current timestamp.
     pub fn insert(&self, table: &str, data: Value) -> Result<Document> {
-        let conn = self.conn.lock().unwrap();
-        let mut cache = self.known_tables.lock().unwrap();
+        let conn = self.conn();
+        let mut cache = self.tables();
         storage::insert(&conn, &mut cache, table, data)
     }
 
@@ -78,7 +96,7 @@ impl Database {
     /// Setting a key to `null` removes it from the document.
     /// Returns `Error::TableNotFound` / `Error::DocumentNotFound` if the target doesn't exist.
     pub fn update(&self, table: &str, id: &str, patch: Value) -> Result<Document> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::update(&conn, table, id, patch)
     }
 
@@ -87,7 +105,7 @@ impl Database {
     /// The document is removed from current state but preserved in history with `_op='DELETE'`.
     /// Returns `Error::TableNotFound` / `Error::DocumentNotFound` if the target doesn't exist.
     pub fn delete(&self, table: &str, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::delete(&conn, table, id)
     }
 
@@ -96,7 +114,7 @@ impl Database {
     /// Idempotent — returns `Ok(())` if the table or document does not exist.
     /// Logs the erasure to `_erasure_log` for GDPR audit purposes.
     pub fn erase(&self, table: &str, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::erase(&conn, table, id)
     }
 
@@ -104,7 +122,7 @@ impl Database {
     ///
     /// Returns `Error::TableNotFound` / `Error::DocumentNotFound` if the target doesn't exist.
     pub fn get(&self, table: &str, id: &str) -> Result<Document> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::get(&conn, table, id)
     }
 
@@ -113,7 +131,7 @@ impl Database {
     /// Returns `Error::TableNotFound` if the table doesn't exist.
     /// Returns an empty `QueryResult` if the table exists but has no current documents.
     pub fn query(&self, table: &str) -> Result<QueryResult> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::query(&conn, table)
     }
 
@@ -124,7 +142,7 @@ impl Database {
     ///
     /// Returns `Error::TableNotFound` if the table doesn't exist.
     pub fn query_all(&self, table: &str) -> Result<QueryResult> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::query_all(&conn, table)
     }
 
@@ -136,7 +154,7 @@ impl Database {
     ///
     /// Returns `Error::TableNotFound` / `Error::InvalidTimestamp` as appropriate.
     pub fn query_at(&self, table: &str, timestamp_iso: &str) -> Result<QueryResult> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::query_at(&conn, table, timestamp_iso)
     }
 
@@ -147,7 +165,7 @@ impl Database {
     ///
     /// Returns `Error::TableNotFound` / `Error::InvalidTimestamp` as appropriate.
     pub fn query_between(&self, table: &str, from_iso: &str, to_iso: &str) -> Result<QueryResult> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         storage::query_between(&conn, table, from_iso, to_iso)
     }
 }
