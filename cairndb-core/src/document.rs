@@ -172,6 +172,14 @@ impl QueryResult {
     }
 }
 
+impl From<Document> for QueryResult {
+    fn from(doc: Document) -> Self {
+        Self {
+            documents: vec![doc],
+        }
+    }
+}
+
 impl IntoIterator for QueryResult {
     type Item = Document;
     type IntoIter = std::vec::IntoIter<Document>;
@@ -385,5 +393,13 @@ mod tests {
         let v = qr.into_documents();
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].id(), "d1");
+    }
+
+    #[test]
+    fn query_result_from_document() {
+        let doc = make_doc("solo", json!({"x": 1}), 0, 1);
+        let qr: QueryResult = doc.into();
+        assert_eq!(qr.len(), 1);
+        assert_eq!(qr.documents()[0].id(), "solo");
     }
 }

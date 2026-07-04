@@ -3,6 +3,7 @@ pub mod ir;
 
 mod parse;
 mod standard;
+mod temporal;
 
 pub use error::Error;
 pub use ir::{Filter, Statement, TemporalClause};
