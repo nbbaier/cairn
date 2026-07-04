@@ -146,7 +146,7 @@ cairn/
 │       └── versioning.rs    # History and temporal query logic
 ├── cairndb/                 # High-level crate (depends on cairndb-core)
 ├── cairndb-parser/          # Temporal SQL parser (not yet implemented)
-└── spec.md                  # Project vision and design spec
+└── docs/                    # spec, roadmap, decisions, and implementation plans
 ```
 
 ## License

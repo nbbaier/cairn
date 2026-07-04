@@ -6,9 +6,9 @@ cairndb is an embedded temporal document database built on vanilla SQLite.
 Every write is versioned automatically, so queries can ask "what did this
 document look like at time T" without any application-level bookkeeping. The
 workspace has three crates: `cairndb` (public facade), `cairndb-core`
-(storage engine), `cairndb-parser` (SQL → IR). See `spec.md` for the product
-vision, `roadmap.md` for milestones and the Endb compatibility matrix, and
-`decisions.md` for the numbered design-decision log.
+(storage engine), `cairndb-parser` (SQL → IR). See `docs/spec.md` for the
+product vision, `docs/roadmap.md` for milestones and the Endb compatibility
+matrix, and `docs/decisions.md` for the numbered design-decision log.
 
 ## Build / test / lint
 
@@ -32,7 +32,7 @@ cross-crate behavior lives in `cairndb/tests/`.
 
 Hard rule: `cairndb-core` and `cairndb-parser` must never depend on each
 other. Only `cairndb` may depend on both (Decisions #3 and #22 in
-`decisions.md`).
+`docs/decisions.md`).
 
 ## Invariants you must not break
 
@@ -44,8 +44,8 @@ other. Only `cairndb` may depend on both (Decisions #3 and #22 in
   speaks ISO 8601 `YYYY-MM-DDTHH:MM:SS.mmmZ` (24 chars, UTC only) — see
   Decision #7. Conversion happens only in the Rust layer.
 - Physical schema is owned entirely by cairndb: user table `t` becomes
-  `_t_current` + `_t_history` plus BEFORE triggers (see `spec.md`, Storage
-  Model section); system tables are `_transactions`, `_schema_registry`,
+  `_t_current` + `_t_history` plus BEFORE triggers (see `docs/spec.md`,
+  Storage Model section); system tables are `_transactions`, `_schema_registry`,
   `_erasure_log`, and `_cairn_tx_context` (the latter per Decision #9).
 - The parser emits a typed IR (`cairndb-parser/src/ir.rs::Statement`), never
   raw SQL (Decision #20).
@@ -69,6 +69,20 @@ other. Only `cairndb` may depend on both (Decisions #3 and #22 in
 
 ## Where to record decisions
 
-- New design decisions get a numbered entry appended to `decisions.md`.
-- Milestone or scope changes go in `roadmap.md`.
+- New design decisions get a numbered entry appended to `docs/decisions.md`.
+- Milestone or scope changes go in `docs/roadmap.md`.
 - Don't duplicate roadmap or API reference content here — link to it.
+
+## Agent skills
+
+### Issue tracker
+
+Issues tracked in GitHub Issues (github.com/nbbaier/cairn) via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
