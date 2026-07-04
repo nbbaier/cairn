@@ -72,3 +72,17 @@ other. Only `cairndb` may depend on both (Decisions #3 and #22 in
 - New design decisions get a numbered entry appended to `decisions.md`.
 - Milestone or scope changes go in `roadmap.md`.
 - Don't duplicate roadmap or API reference content here — link to it.
+
+## Agent skills
+
+### Issue tracker
+
+Issues tracked in GitHub Issues (github.com/nbbaier/cairn) via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
