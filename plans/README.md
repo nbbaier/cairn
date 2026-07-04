@@ -9,21 +9,21 @@ your row when done.
 
 ## Execution order & status
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 001  | CI verification baseline (fmt, clippy, test) | P1 | S | — | DONE (executed 2026-07-01 on branch feat/ci-baseline) |
-| 002  | Add CLAUDE.md with repo conventions | P1 | S | — | DONE (executed 2026-07-03 on branch feat/claude-md) |
-| 003  | Remove panic paths from cairndb-core | P2 | M | 001 | DONE (executed 2026-07-03; PR #22 open) |
-| 004  | Dedupe materialization + read-path overhead in storage.rs | P2 | M | 003 | TODO |
-| 005  | SELECT + FOR SYSTEM_TIME parsed and dispatched end-to-end | P1 | L | 001 | TODO |
+| Plan | Title                                                     | Priority | Effort | Depends on | Status                                           |
+| ---- | --------------------------------------------------------- | -------- | ------ | ---------- | ------------------------------------------------ |
+| 001  | CI verification baseline (fmt, clippy, test)              | P1       | S      | —          | DONE (executed 2026-07-01; feat/ci-baseline)     |
+| 002  | Add CLAUDE.md with repo conventions                       | P1       | S      | —          | DONE (executed 2026-07-03; feat/claude-md)       |
+| 003  | Remove panic paths from cairndb-core                      | P2       | M      | 001        | DONE (executed 2026-07-03; fix/core-panic-paths) |
+| 004  | Dedupe materialization + read-path overhead in storage.rs | P2       | M      | 003        | TODO                                             |
+| 005  | SELECT + FOR SYSTEM_TIME parsed and dispatched end-to-end | P1       | L      | 001        | TODO                                             |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
 ## Dependency notes
 
 - 001 first: every other plan's verification gate is `cargo test --workspace`
-  + clippy `-D warnings`; 001 also fixes the pre-existing `cargo fmt --check`
-  failure so gates start green.
+   - clippy `-D warnings`; 001 also fixes the pre-existing `cargo fmt --check`
+     failure so gates start green.
 - 003 before 004: both rewrite the same regions of
   `cairndb-core/src/storage.rs`; 004's drift check knows what 003 changes.
 - 005 is independent of 003/004 (parser + facade + one 15-line addition to
