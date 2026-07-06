@@ -1,5 +1,10 @@
 # Plan 004: Deduplicate row materialization and cut per-query overhead in storage.rs
 
+> **MIGRATED (2026-07-06)**: this plan now lives as GitHub issue
+> [#25](https://github.com/nbbaier/cairn/issues/25), refreshed against commit
+> `53d5785`. The issue is canonical; this file is retained for lineage only —
+> do not execute from it.
+
 > **Executor instructions**: Follow this plan step by step. Run every
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and

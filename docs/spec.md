@@ -270,7 +270,7 @@ DELETE FROM _users_current WHERE _id = 'user-123';
 DELETE FROM _users_history WHERE _id = 'user-123';
 -- Optionally: log the erasure event (without the erased data) for audit
 INSERT INTO _erasure_log (_table, _id, _erased_at)
-VALUES ('users', 'user-123', '2026-04-04T12:00:00Z');
+VALUES ('users', 'user-123', '2026-04-04T12:00:00.000Z');
 ```
 
 
