@@ -196,3 +196,19 @@ INSERT INTO events {name: 'deploy', status: 'pending'}
 Both forms produce the same IR: `Statement::Insert { table, data }` with a `serde_json::Map`.
 
 **Rationale:** Column/value is standard SQL and what `sqlparser-rs` would parse (though we use our custom parser for both INSERT forms for consistency). Document literal is Endb's signature syntax and more natural for a document database. Supporting both from v0.1 means neither form is a second-class citizen.
+
+## 24. v0.1 Audit: Deliberate Non-Actions
+
+**Decision:** The 2026-07-01 full-repo audit (which produced local implementation plans 001–005, since executed or migrated to GitHub issues) considered and rejected the following. Each is recorded with its revisit trigger so future audits don't re-litigate them:
+
+- **Identifier quoting defense-in-depth** — injection is already blocked by the strict `validate_table_name` allowlist (`^[a-zA-Z_][a-zA-Z0-9_]*$`, `schema.rs`), applied at every entry point. Quoting all ~15 interpolation sites is churn without a current threat. *Revisit if validation rules ever loosen.*
+- **`json(_data)` double-parse** — `_data` is stored as JSONB, so `json()` is required to read it as text; eliminating the round-trip means changing the storage format. *Benchmark before acting.*
+- **Splitting the storage.rs god module** — roughly half its lines are tests; premature to split before v0.2 grows the query layer. *Revisit when v0.2 query work starts.*
+- **SQL template registry** — `prepare_cached` (issue #25) removes the perf motivation; a registry adds indirection for little gain at current size.
+- **Pagination / LIMIT** — deliberate v0.1 scope; roadmap v0.2 adds LIMIT/OFFSET at the SQL layer, the right place for it.
+- **Reserved system-table names** — no collision is physically possible: user table `t` maps to `_t_current`/`_t_history`; system tables have no such suffix. *Revisit only if the physical naming scheme changes.*
+- **Concurrency stress tests** — the single `Mutex<Connection>` design makes races unlikely by construction. *Reconsider when a reader-pool upgrade (Decision #13) is attempted.*
+
+Actionable carve-outs from that audit now live on GitHub: the parser fuzz target (noted on issue #15) and dependency bumps (issue #26).
+
+**Rationale:** The local `docs/plans/` directory that held this list was retired once actionable work moved to GitHub Issues; the reject-with-trigger rationale is the one durable artifact, and the decision log is its natural home.
