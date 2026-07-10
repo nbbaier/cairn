@@ -1,4 +1,5 @@
 use crate::error::Result;
+use crate::insert;
 use crate::ir::Statement;
 use crate::standard;
 use crate::temporal;
@@ -9,9 +10,15 @@ pub fn parse(sql: &str) -> Result<Statement> {
         return Err(crate::error::Error::Parse("empty input".to_string()));
     }
 
-    // Detect statement type by first keyword.
-    // Custom parsers (INSERT, ERASE) will be added here in future slices.
-    // For now, everything routes to sqlparser-rs, after stripping the
+    // Detect statement type by first keyword. Custom parsers run before the
+    // temporal pre-processor and sqlparser-rs fallback (decision #18); INSERT
+    // is handled here, ERASE is still pending (#19).
+    let first = trimmed.split_whitespace().next().unwrap_or("");
+    if first.eq_ignore_ascii_case("INSERT") {
+        return insert::parse_insert(trimmed);
+    }
+
+    // Everything else routes to sqlparser-rs, after stripping the
     // non-standard `FOR SYSTEM_TIME` clause sqlparser-rs cannot parse.
     let (stripped, temporal) = temporal::strip_system_time(trimmed)?;
     standard::parse_standard(&stripped, temporal)
@@ -60,5 +67,39 @@ mod tests {
     fn parse_invalid_sql() {
         let err = parse("GIBBERISH NONSENSE").unwrap_err();
         assert!(matches!(err, crate::error::Error::Parse(_)));
+    }
+
+    #[test]
+    fn parse_insert_routes_to_custom_parser() {
+        let stmt = parse("INSERT INTO events (name) VALUES ('x')").unwrap();
+        let mut data = serde_json::Map::new();
+        data.insert("name".to_string(), serde_json::json!("x"));
+        assert_eq!(
+            stmt,
+            Statement::Insert {
+                table: "events".to_string(),
+                data,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_insert_lowercase() {
+        let stmt = parse("insert into t (a) values (1)").unwrap();
+        let mut data = serde_json::Map::new();
+        data.insert("a".to_string(), serde_json::json!(1));
+        assert_eq!(
+            stmt,
+            Statement::Insert {
+                table: "t".to_string(),
+                data,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_insert_with_leading_whitespace() {
+        let stmt = parse("   INSERT INTO t (a) VALUES (1)   ").unwrap();
+        assert!(matches!(stmt, Statement::Insert { .. }));
     }
 }
