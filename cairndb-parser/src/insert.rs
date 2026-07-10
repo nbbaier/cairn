@@ -64,7 +64,9 @@ pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
 
     let mut data = Map::new();
     for (column, value) in columns.into_iter().zip(values) {
-        data.insert(column, value);
+        if data.insert(column.clone(), value).is_some() {
+            return Err(Error::Parse(format!("duplicate column '{column}'")));
+        }
     }
     Ok(Statement::Insert { table, data })
 }
@@ -217,6 +219,9 @@ impl<'a> Scanner<'a> {
 
     fn identifier(&mut self, what: &str) -> Result<String> {
         self.skip_whitespace();
+        if self.peek() == Some('"') {
+            return self.quoted_identifier(what);
+        }
         let word = self.peek_word();
         match word.chars().next() {
             Some(c) if c.is_ascii_alphabetic() || c == '_' => {
@@ -224,6 +229,30 @@ impl<'a> Scanner<'a> {
                 Ok(word.to_string())
             }
             _ => Err(Error::Parse(format!("expected {what}"))),
+        }
+    }
+
+    /// Double-quoted identifier, matching what sqlparser-rs accepts for
+    /// CREATE/SELECT; `""` inside is an escaped quote. The unquoted name is
+    /// returned as-is — core re-validates table names.
+    fn quoted_identifier(&mut self, what: &str) -> Result<String> {
+        self.bump(); // opening quote
+        let mut out = String::new();
+        loop {
+            match self.bump() {
+                None => return Err(Error::Parse(format!("unterminated quoted {what}"))),
+                Some('"') => {
+                    if self.peek() == Some('"') {
+                        self.bump();
+                        out.push('"');
+                    } else if out.is_empty() {
+                        return Err(Error::Parse(format!("empty quoted {what}")));
+                    } else {
+                        return Ok(out);
+                    }
+                }
+                Some(c) => out.push(c),
+            }
         }
     }
 
@@ -477,6 +506,48 @@ mod tests {
         let err = parse_insert("INSERT INTO t (a) VALUES (banana)").unwrap_err();
         assert!(matches!(err, Error::Parse(_)));
         assert!(err.to_string().contains("banana"), "error was: {err}");
+    }
+
+    #[test]
+    fn duplicate_columns_rejected() {
+        let err = parse_insert("INSERT INTO t (a, a) VALUES (1, 2)").unwrap_err();
+        assert!(matches!(err, Error::Parse(_)));
+        assert!(
+            err.to_string().contains("duplicate column 'a'"),
+            "error was: {err}"
+        );
+    }
+
+    #[test]
+    fn quoted_table_and_column_names() {
+        let stmt = parse_insert(r#"INSERT INTO "events" ("name") VALUES ('x')"#).unwrap();
+        let (table, data) = data_of(stmt);
+        assert_eq!(table, "events");
+        assert_eq!(data["name"], json!("x"));
+    }
+
+    #[test]
+    fn quoted_identifier_with_escaped_quote() {
+        let stmt = parse_insert(r#"INSERT INTO t ("a""b") VALUES (1)"#).unwrap();
+        let (_, data) = data_of(stmt);
+        assert_eq!(data[r#"a"b"#], json!(1));
+    }
+
+    #[test]
+    fn empty_quoted_identifier_rejected() {
+        let err = parse_insert(r#"INSERT INTO "" (a) VALUES (1)"#).unwrap_err();
+        assert!(matches!(err, Error::Parse(_)));
+        assert!(err.to_string().contains("empty quoted"), "error was: {err}");
+    }
+
+    #[test]
+    fn unterminated_quoted_identifier_rejected() {
+        let err = parse_insert(r#"INSERT INTO "events (a) VALUES (1)"#).unwrap_err();
+        assert!(matches!(err, Error::Parse(_)));
+        assert!(
+            err.to_string().contains("unterminated quoted"),
+            "error was: {err}"
+        );
     }
 
     #[test]

@@ -130,6 +130,32 @@ fn insert_document_literal_is_unsupported_for_now() {
 }
 
 #[test]
+fn insert_quoted_table_name_matches_quoted_create() {
+    let db = Database::open_in_memory().unwrap();
+
+    // CREATE (via sqlparser-rs) accepts quoted identifiers; INSERT must too.
+    db.sql(r#"CREATE TABLE "events""#).unwrap();
+    db.sql(r#"INSERT INTO "events" ("name") VALUES ('x')"#)
+        .unwrap();
+
+    let all = db.query("events").unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(all.documents()[0].get("name"), Some(&json!("x")));
+}
+
+#[test]
+fn insert_duplicate_column_is_error() {
+    let db = Database::open_in_memory().unwrap();
+
+    let err = db.sql("INSERT INTO t (a, a) VALUES (1, 2)").unwrap_err();
+    assert!(matches!(err, cairndb::Error::Parse(_)));
+    assert!(
+        err.to_string().contains("duplicate column 'a'"),
+        "error was: {err}"
+    );
+}
+
+#[test]
 fn insert_invalid_table_name_is_parse_error() {
     let db = Database::open_in_memory().unwrap();
 
