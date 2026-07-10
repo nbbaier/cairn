@@ -310,10 +310,8 @@ mod tests {
 
     #[test]
     fn multi_column_preserves_order_and_types() {
-        let stmt = parse_insert(
-            "INSERT INTO events (name, status) VALUES ('deploy', 'pending')",
-        )
-        .unwrap();
+        let stmt =
+            parse_insert("INSERT INTO events (name, status) VALUES ('deploy', 'pending')").unwrap();
         let (table, data) = data_of(stmt);
         assert_eq!(table, "events");
         let keys: Vec<&String> = data.keys().collect();
@@ -338,8 +336,7 @@ mod tests {
 
     #[test]
     fn negative_numbers() {
-        let (_, data) =
-            data_of(parse_insert("INSERT INTO t (a, b) VALUES (-7, -0.5)").unwrap());
+        let (_, data) = data_of(parse_insert("INSERT INTO t (a, b) VALUES (-7, -0.5)").unwrap());
         assert_eq!(data["a"], json!(-7));
         assert_eq!(data["b"], json!(-0.5));
     }
@@ -352,8 +349,7 @@ mod tests {
 
     #[test]
     fn boolean_values() {
-        let (_, data) =
-            data_of(parse_insert("INSERT INTO t (a, b) VALUES (true, FALSE)").unwrap());
+        let (_, data) = data_of(parse_insert("INSERT INTO t (a, b) VALUES (true, FALSE)").unwrap());
         assert_eq!(data["a"], json!(true));
         assert_eq!(data["b"], json!(false));
     }
@@ -366,8 +362,7 @@ mod tests {
 
     #[test]
     fn escaped_quote_in_string() {
-        let (_, data) =
-            data_of(parse_insert("INSERT INTO t (a) VALUES ('it''s fine')").unwrap());
+        let (_, data) = data_of(parse_insert("INSERT INTO t (a) VALUES ('it''s fine')").unwrap());
         assert_eq!(data["a"], json!("it's fine"));
     }
 
@@ -486,8 +481,7 @@ mod tests {
 
     #[test]
     fn multibyte_chars_in_string_are_safe() {
-        let (_, data) =
-            data_of(parse_insert("INSERT INTO t (a) VALUES ('héllo 🎉')").unwrap());
+        let (_, data) = data_of(parse_insert("INSERT INTO t (a) VALUES ('héllo 🎉')").unwrap());
         assert_eq!(data["a"], json!("héllo 🎉"));
     }
 }

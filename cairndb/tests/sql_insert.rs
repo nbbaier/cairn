@@ -5,9 +5,7 @@ use serde_json::json;
 fn insert_returns_one_document_with_id() {
     let db = Database::open_in_memory().unwrap();
 
-    let result = db
-        .sql("INSERT INTO events (name) VALUES ('test')")
-        .unwrap();
+    let result = db.sql("INSERT INTO events (name) VALUES ('test')").unwrap();
     assert_eq!(result.len(), 1);
     assert!(!result.documents()[0].id().is_empty());
 }
@@ -63,9 +61,7 @@ fn insert_null_value_maps_to_json_null() {
 fn insert_float_and_negative_values() {
     let db = Database::open_in_memory().unwrap();
 
-    let result = db
-        .sql("INSERT INTO t (a, b) VALUES (-7, 3.25)")
-        .unwrap();
+    let result = db.sql("INSERT INTO t (a, b) VALUES (-7, 3.25)").unwrap();
     let doc = &result.documents()[0];
     assert_eq!(doc.get("a"), Some(&json!(-7)));
     assert_eq!(doc.get("b"), Some(&json!(3.25)));
@@ -90,9 +86,7 @@ fn insert_sql_matches_rust_api_insert() {
 fn insert_string_with_escaped_quote() {
     let db = Database::open_in_memory().unwrap();
 
-    let result = db
-        .sql("INSERT INTO t (a) VALUES ('it''s fine')")
-        .unwrap();
+    let result = db.sql("INSERT INTO t (a) VALUES ('it''s fine')").unwrap();
     assert_eq!(result.documents()[0].get("a"), Some(&json!("it's fine")));
 }
 
