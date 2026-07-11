@@ -119,14 +119,35 @@ fn insert_select_is_error() {
 }
 
 #[test]
-fn insert_document_literal_is_unsupported_for_now() {
+fn insert_document_literal_is_queryable_with_nested_values() {
     let db = Database::open_in_memory().unwrap();
 
-    let err = db.sql("INSERT INTO t {name: 'x'}").unwrap_err();
-    assert!(
-        err.to_string().contains("document literal"),
-        "error was: {err}"
-    );
+    db.sql("INSERT INTO t {x: 1, nested: {y: 'z'}, arr: [1, 2]}")
+        .unwrap();
+    let result = db.query("t").unwrap();
+    let doc = &result.documents()[0];
+    assert_eq!(doc.get("x"), Some(&json!(1)));
+    assert_eq!(doc.get("nested"), Some(&json!({"y": "z"})));
+    assert_eq!(doc.get("arr"), Some(&json!([1, 2])));
+}
+
+#[test]
+fn insert_forms_produce_equivalent_payloads() {
+    let db = Database::open_in_memory().unwrap();
+
+    let columns = db
+        .sql("INSERT INTO t (name, count, active) VALUES ('x', 2, true)")
+        .unwrap();
+    let document = db
+        .sql("INSERT INTO t {name: 'x', count: 2, active: true}")
+        .unwrap();
+
+    for key in ["name", "count", "active"] {
+        assert_eq!(
+            columns.documents()[0].get(key),
+            document.documents()[0].get(key)
+        );
+    }
 }
 
 #[test]

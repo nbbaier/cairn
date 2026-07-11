@@ -3,11 +3,7 @@ use serde_json::{Map, Value};
 use crate::error::{Error, Result};
 use crate::ir::Statement;
 
-/// Parses the column/value form of INSERT:
-/// `INSERT INTO <table> (<col>, ...) VALUES (<value>, ...)`.
-///
-/// The document-literal form (`INSERT INTO t {..}`) is slice #15; until it
-/// lands, seeing `{` after the table name returns `Error::Unsupported`.
+/// Parses column/value and Endb-style document-literal INSERT statements.
 pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
     let mut s = Scanner::new(sql);
 
@@ -18,9 +14,8 @@ pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
     s.skip_whitespace();
     match s.peek() {
         Some('{') => {
-            return Err(Error::Unsupported(
-                "document literal INSERT is not yet implemented".to_string(),
-            ));
+            let data = crate::doc_literal::parse_document(s.rest())?;
+            return Ok(Statement::Insert { table, data });
         }
         Some('(') => {}
         _ => {
@@ -482,13 +477,18 @@ mod tests {
     }
 
     #[test]
-    fn document_literal_rejected_until_slice_15() {
-        let err = parse_insert("INSERT INTO t {name: 'x'}").unwrap_err();
-        assert!(matches!(err, Error::Unsupported(_)));
-        assert!(
-            err.to_string().contains("document literal"),
-            "error was: {err}"
-        );
+    fn document_literal_produces_insert_statement() {
+        let statement = parse_insert("INSERT INTO events {name: 'deploy'}").unwrap();
+        let (table, data) = data_of(statement);
+        assert_eq!(table, "events");
+        assert_eq!(data["name"], json!("deploy"));
+    }
+
+    #[test]
+    fn multiple_document_literals_are_rejected() {
+        let error = parse_insert("INSERT INTO t {a: 1}, {a: 2}").unwrap_err();
+        assert!(matches!(error, Error::Unsupported(_)));
+        assert!(error.to_string().contains("multi-document"));
     }
 
     #[test]
