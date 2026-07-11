@@ -30,6 +30,9 @@ pub(crate) fn execute(db: &Database, query: &str) -> Result<QueryResult> {
             )
             .into()),
         },
+        cairndb_parser::Statement::Insert { table, data } => {
+            Ok(db.insert(&table, serde_json::Value::Object(data))?.into())
+        }
         _ => Err(cairndb_parser::Error::Unsupported(
             "statement type not yet implemented in dispatch".to_string(),
         )

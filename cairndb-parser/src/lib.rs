@@ -1,6 +1,7 @@
 pub mod error;
 pub mod ir;
 
+mod insert;
 mod parse;
 mod standard;
 mod temporal;
