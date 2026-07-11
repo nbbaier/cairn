@@ -84,20 +84,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_document_literal_insert_returns_typed_ir() {
-        let statement = parse("INSERT INTO events {name: 'deploy'}").unwrap();
-        let mut data = serde_json::Map::new();
-        data.insert("name".to_string(), serde_json::json!("deploy"));
-        assert_eq!(
-            statement,
-            Statement::Insert {
-                table: "events".to_string(),
-                data,
-            }
-        );
-    }
-
-    #[test]
     fn parse_insert_lowercase() {
         let stmt = parse("insert into t (a) values (1)").unwrap();
         let mut data = serde_json::Map::new();

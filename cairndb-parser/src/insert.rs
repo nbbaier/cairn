@@ -15,23 +15,7 @@ pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
     match s.peek() {
         Some('{') => {
             let input = s.rest();
-            let (data, consumed) = crate::doc_literal::parse_document_prefix(input)?;
-            let trailing = input[consumed..].trim();
-            if !trailing.is_empty() && trailing != ";" {
-                if let Some(candidate) = trailing.strip_prefix(',') {
-                    let candidate = candidate.trim_start();
-                    if candidate.starts_with('{')
-                        && crate::doc_literal::parse_document(candidate).is_ok()
-                    {
-                        return Err(Error::Unsupported(
-                            "multi-document INSERT is not supported".to_string(),
-                        ));
-                    }
-                }
-                return Err(Error::Parse(format!(
-                    "unexpected trailing input at byte {consumed}"
-                )));
-            }
+            let data = crate::doc_literal::parse_document(input)?;
             return Ok(Statement::Insert { table, data });
         }
         Some('(') => {}
@@ -503,9 +487,14 @@ mod tests {
 
     #[test]
     fn multiple_document_literals_are_rejected() {
-        let error = parse_insert("INSERT INTO t {a: 1}, {a: 2}").unwrap_err();
-        assert!(matches!(error, Error::Unsupported(_)));
-        assert!(error.to_string().contains("multi-document"));
+        for sql in [
+            "INSERT INTO t {a: 1}, {a: 2}",
+            "INSERT INTO t {a: 1}, {a: 2}, {a: 3}",
+        ] {
+            let error = parse_insert(sql).unwrap_err();
+            assert!(matches!(error, Error::Unsupported(_)), "{sql}: {error}");
+            assert!(error.to_string().contains("multiple document literals"));
+        }
     }
 
     #[test]

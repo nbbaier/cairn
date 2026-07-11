@@ -4,27 +4,29 @@ use crate::error::{Error, Result};
 
 /// Parses one Endb-style document literal.
 pub(crate) fn parse_document(input: &str) -> Result<Map<String, Value>> {
-    let (document, consumed) = parse_document_prefix(input)?;
     let mut parser = Parser::new(input);
-    parser.pos = consumed;
+    parser.skip_whitespace();
+    let document = parser.object()?;
     parser.skip_whitespace();
     if parser.peek() == Some(';') {
         parser.bump();
         parser.skip_whitespace();
     }
+    if parser.peek() == Some(',') {
+        let comma = parser.pos;
+        parser.bump();
+        parser.skip_whitespace();
+        if parser.peek() == Some('{') {
+            return Err(Error::Unsupported(
+                "multiple document literals are not supported".to_string(),
+            ));
+        }
+        parser.pos = comma;
+    }
     if parser.peek().is_some() {
         return Err(parser.error("unexpected trailing input"));
     }
     Ok(document)
-}
-
-/// Parses the first document and returns the byte offset immediately after it.
-/// Callers that embed document literals can apply their own trailing syntax.
-pub(crate) fn parse_document_prefix(input: &str) -> Result<(Map<String, Value>, usize)> {
-    let mut parser = Parser::new(input);
-    parser.skip_whitespace();
-    let document = parser.object()?;
-    Ok((document, parser.pos))
 }
 
 struct Parser<'a> {
@@ -127,7 +129,9 @@ impl<'a> Parser<'a> {
                         return Err(self.error("trailing comma in array"));
                     }
                 }
-                None => return Err(Error::Parse(format!("unclosed bracket at byte {start}"))),
+                None => {
+                    return Err(Error::Parse(format!("unclosed bracket at byte {start}")));
+                }
                 _ => return Err(self.error("expected ',' or ']' in array")),
             }
         }
@@ -180,7 +184,9 @@ impl<'a> Parser<'a> {
                 }
                 Some('\'') => return Ok(output),
                 Some(ch) => output.push(ch),
-                None => return Err(Error::Parse(format!("unclosed quote at byte {start}"))),
+                None => {
+                    return Err(Error::Parse(format!("unclosed quote at byte {start}")));
+                }
             }
         }
     }
@@ -291,11 +297,20 @@ mod tests {
     }
 
     #[test]
-    fn trailing_content_is_a_generic_parse_error() {
-        for input in ["{a: 1},", "{a: 1}, nope", "{a: 1}, {a: 2}"] {
+    fn trailing_non_document_content_is_a_parse_error() {
+        for input in ["{a: 1},", "{a: 1}, nope"] {
             let error = parse_document(input).unwrap_err();
             assert!(matches!(error, Error::Parse(_)), "{input}: {error}");
             assert!(error.to_string().contains("unexpected trailing input"));
+        }
+    }
+
+    #[test]
+    fn two_or_more_documents_are_unsupported() {
+        for input in ["{a: 1}, {a: 2}", "{a: 1}, {a: 2}, {a: 3}"] {
+            let error = parse_document(input).unwrap_err();
+            assert!(matches!(error, Error::Unsupported(_)), "{input}: {error}");
+            assert!(error.to_string().contains("multiple document literals"));
         }
     }
 
