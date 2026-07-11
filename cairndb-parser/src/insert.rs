@@ -14,7 +14,24 @@ pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
     s.skip_whitespace();
     match s.peek() {
         Some('{') => {
-            let data = crate::doc_literal::parse_document(s.rest())?;
+            let input = s.rest();
+            let (data, consumed) = crate::doc_literal::parse_document_prefix(input)?;
+            let trailing = input[consumed..].trim();
+            if !trailing.is_empty() && trailing != ";" {
+                if let Some(candidate) = trailing.strip_prefix(',') {
+                    let candidate = candidate.trim_start();
+                    if candidate.starts_with('{')
+                        && crate::doc_literal::parse_document(candidate).is_ok()
+                    {
+                        return Err(Error::Unsupported(
+                            "multi-document INSERT is not supported".to_string(),
+                        ));
+                    }
+                }
+                return Err(Error::Parse(format!(
+                    "unexpected trailing input at byte {consumed}"
+                )));
+            }
             return Ok(Statement::Insert { table, data });
         }
         Some('(') => {}
@@ -489,6 +506,15 @@ mod tests {
         let error = parse_insert("INSERT INTO t {a: 1}, {a: 2}").unwrap_err();
         assert!(matches!(error, Error::Unsupported(_)));
         assert!(error.to_string().contains("multi-document"));
+    }
+
+    #[test]
+    fn non_document_trailing_content_is_a_parse_error() {
+        for sql in ["INSERT INTO t {a: 1},", "INSERT INTO t {a: 1}, nope"] {
+            let error = parse_insert(sql).unwrap_err();
+            assert!(matches!(error, Error::Parse(_)), "{sql}: {error}");
+            assert!(error.to_string().contains("unexpected trailing input"));
+        }
     }
 
     #[test]

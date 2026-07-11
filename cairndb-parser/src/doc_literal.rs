@@ -4,23 +4,27 @@ use crate::error::{Error, Result};
 
 /// Parses one Endb-style document literal.
 pub(crate) fn parse_document(input: &str) -> Result<Map<String, Value>> {
+    let (document, consumed) = parse_document_prefix(input)?;
     let mut parser = Parser::new(input);
-    parser.skip_whitespace();
-    let document = parser.object()?;
+    parser.pos = consumed;
     parser.skip_whitespace();
     if parser.peek() == Some(';') {
         parser.bump();
         parser.skip_whitespace();
     }
-    if parser.peek() == Some(',') {
-        return Err(Error::Unsupported(
-            "multi-document INSERT is not supported".to_string(),
-        ));
-    }
     if parser.peek().is_some() {
         return Err(parser.error("unexpected trailing input"));
     }
     Ok(document)
+}
+
+/// Parses the first document and returns the byte offset immediately after it.
+/// Callers that embed document literals can apply their own trailing syntax.
+pub(crate) fn parse_document_prefix(input: &str) -> Result<(Map<String, Value>, usize)> {
+    let mut parser = Parser::new(input);
+    parser.skip_whitespace();
+    let document = parser.object()?;
+    Ok((document, parser.pos))
 }
 
 struct Parser<'a> {
@@ -71,15 +75,20 @@ impl<'a> Parser<'a> {
         loop {
             let key = self.key()?;
             self.skip_whitespace();
-            if self.bump() != Some(':') {
+            if self.peek() != Some(':') {
                 return Err(self.error("expected ':' after object key"));
             }
+            self.bump();
             let value = self.value()?;
             map.insert(key, value);
             self.skip_whitespace();
-            match self.bump() {
-                Some('}') => return Ok(map),
+            match self.peek() {
+                Some('}') => {
+                    self.bump();
+                    return Ok(map);
+                }
                 Some(',') => {
+                    self.bump();
                     self.skip_whitespace();
                     if self.peek() == Some('}') {
                         return Err(self.error("trailing comma in object"));
@@ -106,9 +115,13 @@ impl<'a> Parser<'a> {
         loop {
             values.push(self.value()?);
             self.skip_whitespace();
-            match self.bump() {
-                Some(']') => return Ok(values),
+            match self.peek() {
+                Some(']') => {
+                    self.bump();
+                    return Ok(values);
+                }
                 Some(',') => {
+                    self.bump();
                     self.skip_whitespace();
                     if self.peek() == Some(']') {
                         return Err(self.error("trailing comma in array"));
@@ -278,9 +291,23 @@ mod tests {
     }
 
     #[test]
-    fn rejects_multiple_documents_as_unsupported() {
-        let error = parse_document("{a: 1}, {a: 2}").unwrap_err();
-        assert!(matches!(error, Error::Unsupported(_)));
-        assert!(error.to_string().contains("multi-document"));
+    fn trailing_content_is_a_generic_parse_error() {
+        for input in ["{a: 1},", "{a: 1}, nope", "{a: 1}, {a: 2}"] {
+            let error = parse_document(input).unwrap_err();
+            assert!(matches!(error, Error::Parse(_)), "{input}: {error}");
+            assert!(error.to_string().contains("unexpected trailing input"));
+        }
+    }
+
+    #[test]
+    fn errors_point_at_unexpected_delimiter() {
+        let missing_colon = parse_document("{a 1}").unwrap_err();
+        assert!(missing_colon.to_string().contains("byte 3"));
+
+        let bad_object_delimiter = parse_document("{a: 1 x}").unwrap_err();
+        assert!(bad_object_delimiter.to_string().contains("byte 6"));
+
+        let bad_array_delimiter = parse_document("{a: [1 x]}").unwrap_err();
+        assert!(bad_array_delimiter.to_string().contains("byte 7"));
     }
 }
