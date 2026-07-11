@@ -162,3 +162,13 @@ fn insert_invalid_table_name_is_parse_error() {
     let err = db.sql("INSERT INTO 123abc (a) VALUES (1)").unwrap_err();
     assert!(matches!(err, cairndb::Error::Parse(_)), "error was: {err}");
 }
+
+#[test]
+fn insert_quoted_invalid_table_name_is_parse_error() {
+    let db = Database::open_in_memory().unwrap();
+
+    let err = db
+        .sql(r#"INSERT INTO "bad name" (a) VALUES (1)"#)
+        .unwrap_err();
+    assert!(matches!(err, cairndb::Error::Parse(_)), "error was: {err}");
+}

@@ -13,7 +13,7 @@ pub(crate) fn parse_insert(sql: &str) -> Result<Statement> {
 
     s.expect_keyword("INSERT")?;
     s.expect_keyword("INTO")?;
-    let table = s.identifier("table name")?;
+    let table = s.table_identifier()?;
 
     s.skip_whitespace();
     match s.peek() {
@@ -229,6 +229,24 @@ impl<'a> Scanner<'a> {
                 Ok(word.to_string())
             }
             _ => Err(Error::Parse(format!("expected {what}"))),
+        }
+    }
+
+    /// Parses a bare or quoted table identifier, then applies the same
+    /// restricted identifier shape required by cairndb-core. Keeping this
+    /// check in the parser makes quoted and unquoted invalid names fail at
+    /// the same SQL boundary without coupling the two lower-level crates.
+    fn table_identifier(&mut self) -> Result<String> {
+        let table = self.identifier("table name")?;
+        let mut chars = table.chars();
+        let valid = chars
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && chars.all(|c| c.is_ascii_alphanumeric() || c == '_');
+        if valid {
+            Ok(table)
+        } else {
+            Err(Error::Parse("invalid table name".to_string()))
         }
     }
 
@@ -524,6 +542,13 @@ mod tests {
         let (table, data) = data_of(stmt);
         assert_eq!(table, "events");
         assert_eq!(data["name"], json!("x"));
+    }
+
+    #[test]
+    fn quoted_invalid_table_name_rejected_by_parser() {
+        let err = parse_insert(r#"INSERT INTO "bad name" (a) VALUES (1)"#).unwrap_err();
+        assert!(matches!(err, Error::Parse(_)));
+        assert!(err.to_string().contains("invalid table name"));
     }
 
     #[test]

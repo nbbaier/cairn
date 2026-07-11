@@ -212,3 +212,9 @@ Both forms produce the same IR: `Statement::Insert { table, data }` with a `serd
 Actionable carve-outs from that audit now live on GitHub: the parser fuzz target (noted on issue #15) and dependency bumps (issue #26).
 
 **Rationale:** The local `docs/plans/` directory that held this list was retired once actionable work moved to GitHub Issues; the reject-with-trigger rationale is the one durable artifact, and the decision log is its natural home.
+
+## 25. INSERT Identifier and Duplicate-Column Semantics
+
+**Decision:** The custom INSERT parser accepts double-quoted table and column identifiers, including SQL-standard doubled-quote escapes, so INSERT remains compatible with CREATE and SELECT statements parsed by `sqlparser-rs`. Quoting does not weaken cairndb's table-name allowlist: after unquoting, table names must still match `^[a-zA-Z_][a-zA-Z0-9_]*$`. Repeated column names in a column/value INSERT are rejected as parse errors.
+
+**Rationale:** Rejecting quoted identifiers would let a table be created and queried through the SQL facade but not inserted into using the same identifier spelling. Applying the existing allowlist after unquoting preserves the safety invariant behind interpolated physical table names. Rejecting duplicate columns prevents `serde_json::Map` construction from silently overwriting an earlier value and losing user input.
