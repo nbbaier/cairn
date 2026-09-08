@@ -25,3 +25,7 @@ solo.yml
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# Generated wiki and video artifacts
+droid-wiki/
+.factory/video/
