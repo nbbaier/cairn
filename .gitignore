@@ -29,3 +29,6 @@ solo.yml
 # Generated wiki and video artifacts
 droid-wiki/
 .factory/video/
+
+# Amp orb portals
+.amp/portals/*

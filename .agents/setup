@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Prepares a fresh Amp orb: installs the stable Rust toolchain (matching CI)
+# and pre-builds the workspace so test/clippy runs start warm.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+step() {
+  local name="$1"
+  shift
+  echo "==> $name"
+  local start=$SECONDS
+  "$@"
+  echo "    done in $((SECONDS - start))s"
+}
+
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+export PATH="$CARGO_HOME/bin:$PATH"
+
+install_rustup() {
+  if command -v rustup >/dev/null 2>&1; then
+    echo "    rustup already installed"
+    return
+  fi
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+    sh -s -- -y --no-modify-path --profile minimal --default-toolchain none
+}
+
+install_toolchain() {
+  # CI uses dtolnay/rust-toolchain@stable with rustfmt + clippy.
+  rustup toolchain install stable --profile minimal --component rustfmt,clippy --no-self-update
+  rustup default stable
+}
+
+persist_path() {
+  local marker="# cairndb: Rust toolchain"
+  local rc
+  for rc in "$HOME/.bash_profile" "$HOME/.bashrc"; do
+    if ! grep -Fqx "$marker" "$rc" 2>/dev/null; then
+      printf '\n%s\n[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"\n' "$marker" >>"$rc"
+    fi
+  done
+}
+
+step "Install rustup" install_rustup
+step "Install stable toolchain" install_toolchain
+step "Persist cargo PATH" persist_path
+step "Fetch crates" cargo fetch --locked
+step "Build tests" cargo test --workspace --locked --no-run
+step "Warm clippy" cargo clippy --workspace --all-targets --locked
