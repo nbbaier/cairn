@@ -34,6 +34,9 @@ Hard rule: `cairndb-core` and `cairndb-parser` must never depend on each
 other. Only `cairndb` may depend on both (Decisions #3 and #22 in
 `docs/decisions.md`).
 
+Adding or extending a SQL statement (parser → IR → dispatch → tests): follow
+`docs/adding-a-statement.md`.
+
 ## Invariants you must not break
 
 - Table names are validated by `validate_table_name` in
