@@ -38,7 +38,7 @@ The foundational storage engine, exercised directly via Rust API.
 
 ## v0.1b — SQL Parser & Dispatch (cairndb-parser + cairndb facade)
 
-**Status: In progress.** Per-statement progress lives in PRD [#12](https://github.com/nbbaier/cairn/issues/12) and its child issues, not here.
+**Tracking:** PRD [#12](https://github.com/nbbaier/cairn/issues/12) and its child issues hold per-statement status.
 
 Adds a SQL interface on top of the storage layer. Users can write SQL instead of calling Rust methods directly.
 
