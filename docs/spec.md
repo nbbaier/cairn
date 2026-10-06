@@ -11,6 +11,7 @@ This document describes an embedded equivalent — something that is to Endataba
 The project name is **cairndb**.
 
 Related documents: 
+- [GLOSSARY.md](../GLOSSARY.md): canonical domain vocabulary
 - [decisions.md](decisions.md): design decisions with rationale
 - [roadmap.md](roadmap.md): milestones, scope, and Endb SQL compatibility matrix
 
@@ -22,9 +23,9 @@ Related documents:
 
 2. **SQL is the interface.** Not a custom API. The query language is a superset of SQLite-compatible SQL with temporal and document extensions. Existing SQLite tooling should work for basic operations.
 
-3. **Immutable by default.** All records are versioned. `UPDATE` and `DELETE` produce new versions; they do not destroy data. History is queryable. The only true deletion is an explicit `ERASE` (for GDPR/compliance).
+3. **Non-destructive by default.** All documents are versioned. `UPDATE` creates a new current version and retains the previous version; `DELETE` ends the current version and preserves history without creating a tombstone. `ERASE` removes retained document versions, while erasure audit metadata remains.
 
-4. **Schema-flexible.** Tables accept semi-structured documents. You do not need to declare columns before inserting data. The engine infers and tracks schema dynamically (schema-last).
+4. **Schema-last.** Tables accept semi-structured documents without declaring fields or types before inserting data. Descriptive schema tracking is a separate concern; active type inference is planned rather than implemented in v0.1.
 
 5. **Time-travel is a first-class query primitive.** `FOR SYSTEM_TIME AS OF`, `BETWEEN`, `ALL`, and SQL:2011 period predicates are part of the SQL dialect, not bolted on via application-level workarounds.
 
@@ -103,7 +104,7 @@ Related documents:
 
 ### Current-state tables
 
-Each logical table `T` has a corresponding physical table `_T_current` that holds the latest version of each document. This is what queries without temporal qualifiers read from — optimized for the common case.
+Each logical table `T` has a corresponding physical table `_T_current` that holds the current version of each non-deleted document. This is what queries without temporal qualifiers read from — optimized for the common case.
 
 ```sql
 -- Physical schema for a logical table "events"
@@ -117,7 +118,7 @@ CREATE TABLE _events_current (
 
 ### History tables
 
-Each logical table also has a `_T_history` table that stores all prior versions. This is append-only.
+Each logical table also has a `_T_history` table that stores historical versions. Ordinary writes only append to history; explicit erasure removes a document's retained versions.
 
 ```sql
 CREATE TABLE _events_history (
@@ -151,7 +152,9 @@ CREATE TABLE _transactions (
 );
 ```
 
-This enables queries like "show me the database as it was at transaction 42" in addition to timestamp-based time travel.
+The log records write-transaction identities and timestamps separately from document versions. Queries by transaction ID, such as "show me the database as it was at transaction 42," are not part of the v0.1 API.
+
+Decision #26 defines a version's transaction ID as its creating transaction. The current history triggers instead store the ending transaction ID; aligning that behavior and handling existing historical data requires a follow-up. See [Decision #26](decisions.md#26-version-transaction-identity-creating-write).
 
 
 
@@ -163,7 +166,7 @@ Tables in cairn do not require `CREATE TABLE` with predefined columns. Instead:
 
 - `INSERT INTO events {...}` auto-creates the table if it doesn't exist.
 - Each row is stored as a JSONB document in the `_data` column.
-- The engine maintains a **schema registry** that tracks observed keys, their inferred types, and first/last seen timestamps.
+- A **schema registry** is intended to track observed keys, their inferred types, and first/last seen timestamps. In v0.1 its system table is reserved but not populated; active type inference remains future scope in [roadmap.md](roadmap.md). Schema-last writes do not depend on inference.
 
 ```sql
 CREATE TABLE _schema_registry (
@@ -219,6 +222,8 @@ In v0.1, temporal queries are dispatched via the Statement IR to the existing `c
 
 ### AS OF (time travel)
 
+An as-of query includes a version at its start time and excludes it at its end time. These are system times recorded by the database, not application-supplied valid times.
+
 ```sql
 SELECT * FROM events FOR SYSTEM_TIME AS OF '2025-06-15T00:00:00.000Z';
 -- Parser produces: Select { table: "events", temporal: Some(AsOf("2025-06-15T00:00:00.000Z")) }
@@ -227,6 +232,8 @@ SELECT * FROM events FOR SYSTEM_TIME AS OF '2025-06-15T00:00:00.000Z';
 
 ### ALL (full history)
 
+Full history includes both current and historical versions, including versions of deleted documents, but excludes erased versions. Versions created and ended within the same millisecond are retained here even though their empty system-time periods are not visible to an as-of query.
+
 ```sql
 SELECT * FROM events FOR SYSTEM_TIME ALL;
 -- Parser produces: Select { table: "events", temporal: Some(All) }
@@ -234,6 +241,8 @@ SELECT * FROM events FOR SYSTEM_TIME ALL;
 ```
 
 ### BETWEEN
+
+The current API uses the half-open range `[from, to)`: it returns versions active during that range, not merely versions written within it. Equal or reversed endpoints return an empty result. These are cairndb's current semantics, not a claim of exact Endb boundary compatibility.
 
 ```sql
 SELECT * FROM events FOR SYSTEM_TIME BETWEEN '2025-01-01T00:00:00.000Z' AND '2025-12-31T00:00:00.000Z';
@@ -257,9 +266,9 @@ SQL:2011 period predicates (`CONTAINS`, `OVERLAPS`, `PRECEDES`, `SUCCEEDS`, `IMM
 
 
 
-## ERASE (Compliance Deletion)
+## ERASE (Compliance Erasure)
 
-`ERASE` is the one operation that truly destroys data. It removes a record from both current and history tables — as if it never existed. This is for GDPR right-to-be-forgotten and similar compliance requirements.
+`ERASE` removes a document's current and historical versions from queryable data. It retains an erasure audit record containing the table name, document ID, and erasure time, but not the erased document data. It supports compliance workflows; it does not by itself promise secure destruction of physical storage or removal from backups.
 
 ```sql
 -- User writes:
@@ -268,7 +277,7 @@ ERASE FROM users WHERE _id = 'user-123';
 -- Compiler emits:
 DELETE FROM _users_current WHERE _id = 'user-123';
 DELETE FROM _users_history WHERE _id = 'user-123';
--- Optionally: log the erasure event (without the erased data) for audit
+-- Log the erasure request (without the erased document data) for audit
 INSERT INTO _erasure_log (_table, _id, _erased_at)
 VALUES ('users', 'user-123', '2026-04-04T12:00:00.000Z');
 ```
@@ -277,7 +286,7 @@ VALUES ('users', 'user-123', '2026-04-04T12:00:00.000Z');
 
 ## UPDATE and DELETE Semantics
 
-In cairn, `UPDATE` and `DELETE` are non-destructive by default. They create new versions.
+In cairndb, `UPDATE` and `DELETE` are non-destructive by default. An update creates a new current version and retains the previous version in history; deletion ends the current version without creating a tombstone.
 
 ### UPDATE
 

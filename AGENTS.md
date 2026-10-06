@@ -88,4 +88,4 @@ Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-f
 
 ### Domain docs
 
-Single-context. No `GLOSSARY.md` yet; design decisions (the ADR log) are the numbered entries in `docs/decisions.md`. See `docs/agents/domain.md`.
+Single-context. Read `GLOSSARY.md` when naming or reasoning about domain concepts. For glossary changes or conflicts between the model, code, and decisions, follow `docs/agents/domain.md`; the ADR log remains `docs/decisions.md`.

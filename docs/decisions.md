@@ -218,3 +218,11 @@ Actionable carve-outs from that audit now live on GitHub: the parser fuzz target
 **Decision:** The custom INSERT parser accepts double-quoted table and column identifiers, including SQL-standard doubled-quote escapes, so INSERT remains compatible with CREATE and SELECT statements parsed by `sqlparser-rs`. Quoting does not weaken cairndb's table-name allowlist: after unquoting, table names must still match `^[a-zA-Z_][a-zA-Z0-9_]*$`. Repeated column names in a column/value INSERT are rejected as parse errors.
 
 **Rationale:** Rejecting quoted identifiers would let a table be created and queried through the SQL facade but not inserted into using the same identifier spelling. Applying the existing allowlist after unquoting preserves the safety invariant behind interpolated physical table names. Rejecting duplicate columns prevents `serde_json::Map` construction from silently overwriting an earlier value and losing user input.
+
+## 26. Version Transaction Identity: Creating Write
+
+**Decision:** A document version's transaction ID identifies its creating transaction, consistently for current and historical versions. The ending transaction is a separate concept; exposing it is not required by this decision. The ending operation describes why the version ceased to be current, not how it was created.
+
+**Rationale:** Moving a version into history must not change the meaning of its transaction identity. If transaction 1 inserts a document and transaction 2 updates it, the original version belongs to transaction 1 and its replacement belongs to transaction 2. Using the ending transaction for historical versions conflates creation with archival; carrying both identities would be explicit but expands the metadata contract without a demonstrated need.
+
+**Implementation gap:** This decision establishes the intended model; this documentation change does not change stored data or engine behavior. The current history triggers store the ending transaction ID, contrary to the `Document::txn_id()` documentation. A follow-up must align historical-version metadata and tests with this decision and address compatibility with existing databases. The original creating transaction ID is not reliably recoverable from timestamps alone, since multiple transactions can share a millisecond; existing historical IDs must not simply be relabeled as creating IDs.

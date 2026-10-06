@@ -8,6 +8,9 @@ Cairn is an in-process, schema-flexible document database with automatic version
 
 Inspired by [Endatabas](https://www.endatabas.com/). Think of it as what Endatabas would look like if it were embedded like SQLite instead of running as a server.
 
+See [GLOSSARY.md](GLOSSARY.md) for the shared domain vocabulary and
+[docs/decisions.md](docs/decisions.md) for design rationale.
+
 ## Status
 
 The storage engine (`cairndb-core`) is complete. For which SQL statements `db.sql()` supports, see the v0.1b PRD, [#12](https://github.com/nbbaier/cairn/issues/12), and its child issues.
@@ -19,7 +22,7 @@ The storage engine (`cairndb-core`) is complete. For which SQL statements `db.sq
 - **Time-travel queries** — query documents as they existed at any point in time
 - **Range queries** — query all document versions active during a time range
 - **Soft delete** — `delete` removes from current state but preserves history
-- **Hard erase** — `erase` permanently removes all traces (for GDPR compliance), logged to an audit table
+- **Erasure** — `erase` removes current and historical document versions while retaining an erasure audit record
 - **UUIDv7 document IDs** — time-sortable, globally unique
 - **JSON Merge Patch updates** — partial updates via RFC 7396 (set a key to `null` to remove it)
 - **Thread-safe** — `Database` is `Send + Sync`, safe to share via `Arc`
@@ -75,7 +78,7 @@ let all = db.query_all("sensors")?;
 // Soft delete (preserved in history with _op='DELETE')
 db.delete("sensors", doc.id())?;
 
-// Hard erase (permanently removed, logged to _erasure_log)
+// Erasure (document versions removed, audit metadata retained in _erasure_log)
 db.erase("sensors", doc.id())?;
 ```
 
@@ -100,6 +103,9 @@ db.erase("sensors", doc.id())?;
 
 ### `Document`
 
+Each `Document` value represents one document version. Full-history and temporal
+range queries can return several versions sharing the same document ID.
+
 | Method | Description |
 |--------|-------------|
 | `id()` | UUIDv7 document ID |
@@ -108,11 +114,15 @@ db.erase("sensors", doc.id())?;
 | `system_time()` | ISO 8601 UTC timestamp of creation/last modification |
 | `txn_id()` | Transaction ID |
 
+Historical versions currently return the ending transaction ID rather than the
+creating transaction ID. [Decision #26](docs/decisions.md#26-version-transaction-identity-creating-write)
+records the intended consistent meaning and the implementation gap.
+
 ### `QueryResult`
 
 | Method | Description |
 |--------|-------------|
-| `len()` | Number of documents |
+| `len()` | Number of returned document versions |
 | `is_empty()` | Whether the result is empty |
 | `documents()` | Borrow the documents as a slice |
 | `into_documents()` | Consume into a `Vec<Document>` |
