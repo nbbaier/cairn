@@ -10,7 +10,7 @@ Inspired by [Endatabas](https://www.endatabas.com/). Think of it as what Endatab
 
 ## Status
 
-**v0.1 — storage layer + partial SQL.** The core storage engine (`cairndb-core`) is implemented and tested. The temporal SQL parser (`cairndb-parser`) is partially built: `db.sql()` supports `CREATE TABLE` and `SELECT` (including `FOR SYSTEM_TIME` time travel). INSERT, UPDATE, DELETE, and ERASE are Rust-native method calls for now — SQL support for them is tracked in the v0.1b issues.
+**v0.1 — storage layer + SQL in progress.** The storage engine (`cairndb-core`) is complete. SQL support via `db.sql()` is being built statement by statement; for what has shipped and what is next, see the v0.1b PRD, [#12](https://github.com/nbbaier/cairn/issues/12), and its child issues.
 
 ## Features
 

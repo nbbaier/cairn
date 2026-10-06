@@ -15,7 +15,7 @@ Long-term target: full [Endb SQL](https://docs.endatabas.com/sql/) compatibility
 
 ## v0.1a — Storage Layer (cairndb-core) ✅
 
-**Status: Complete** — 183 passing tests.
+**Status: Complete**
 
 The foundational storage engine, exercised directly via Rust API.
 
@@ -38,7 +38,7 @@ The foundational storage engine, exercised directly via Rust API.
 
 ## v0.1b — SQL Parser & Dispatch (cairndb-parser + cairndb facade)
 
-**Status: Next milestone**
+**Status: In progress.** Per-statement progress lives in PRD [#12](https://github.com/nbbaier/cairn/issues/12) and its child issues, not here.
 
 Adds a SQL interface on top of the storage layer. Users can write SQL instead of calling Rust methods directly.
 
