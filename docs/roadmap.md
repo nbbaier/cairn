@@ -15,7 +15,7 @@ Long-term target: full [Endb SQL](https://docs.endatabas.com/sql/) compatibility
 
 ## v0.1a — Storage Layer (cairndb-core) ✅
 
-**Status: Complete** — 183 passing tests.
+**Status: Complete**
 
 The foundational storage engine, exercised directly via Rust API.
 
@@ -38,7 +38,7 @@ The foundational storage engine, exercised directly via Rust API.
 
 ## v0.1b — SQL Parser & Dispatch (cairndb-parser + cairndb facade)
 
-**Status: Next milestone**
+**Tracking:** PRD [#12](https://github.com/nbbaier/cairn/issues/12) and its child issues hold per-statement status.
 
 Adds a SQL interface on top of the storage layer. Users can write SQL instead of calling Rust methods directly.
 
@@ -83,8 +83,6 @@ Adds a SQL interface on top of the storage layer. Users can write SQL instead of
 
 ## v0.2 — Query Expressiveness
 
-**Status: Future**
-
 Unlocks the SQL features users expect from a real database.
 
 ### Core query features
@@ -109,8 +107,6 @@ Unlocks the SQL features users expect from a real database.
 ---
 
 ## v0.3 — Document & Path Features
-
-**Status: Future**
 
 The features that make cairndb feel like a document database at the SQL layer.
 
@@ -137,8 +133,6 @@ The features that make cairndb feel like a document database at the SQL layer.
 ---
 
 ## v0.4 — Advanced SQL
-
-**Status: Future**
 
 Standard SQL features needed for non-trivial queries.
 
@@ -174,8 +168,6 @@ Standard SQL features needed for non-trivial queries.
 
 ## v0.5 — Functions, Types & Temporal Predicates
 
-**Status: Future**
-
 Fills in the function library and completes temporal query support.
 
 ### Functions
@@ -202,8 +194,6 @@ Fills in the function library and completes temporal query support.
 ---
 
 ## v0.6 — Schema, Views, Assertions & Vectors
-
-**Status: Future**
 
 Database-level features for introspection, reuse, and constraints.
 

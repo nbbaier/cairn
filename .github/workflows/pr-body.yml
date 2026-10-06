@@ -1,0 +1,22 @@
+name: PR body
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  issue-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a closing keyword or No-Issue line
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s' "$BODY" | grep -qiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?) #[0-9]+'; then
+            exit 0
+          fi
+          if printf '%s' "$BODY" | grep -qE '^No-Issue: .+'; then
+            exit 0
+          fi
+          echo "::error::PR body needs 'Closes #<issue>' (so the issue closes on merge) or a 'No-Issue: <reason>' line. See docs/agents/issue-tracker.md."
+          exit 1
