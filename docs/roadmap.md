@@ -83,8 +83,6 @@ Adds a SQL interface on top of the storage layer. Users can write SQL instead of
 
 ## v0.2 — Query Expressiveness
 
-**Status: Future**
-
 Unlocks the SQL features users expect from a real database.
 
 ### Core query features
@@ -109,8 +107,6 @@ Unlocks the SQL features users expect from a real database.
 ---
 
 ## v0.3 — Document & Path Features
-
-**Status: Future**
 
 The features that make cairndb feel like a document database at the SQL layer.
 
@@ -137,8 +133,6 @@ The features that make cairndb feel like a document database at the SQL layer.
 ---
 
 ## v0.4 — Advanced SQL
-
-**Status: Future**
 
 Standard SQL features needed for non-trivial queries.
 
@@ -174,8 +168,6 @@ Standard SQL features needed for non-trivial queries.
 
 ## v0.5 — Functions, Types & Temporal Predicates
 
-**Status: Future**
-
 Fills in the function library and completes temporal query support.
 
 ### Functions
@@ -202,8 +194,6 @@ Fills in the function library and completes temporal query support.
 ---
 
 ## v0.6 — Schema, Views, Assertions & Vectors
-
-**Status: Future**
 
 Database-level features for introspection, reuse, and constraints.
 
